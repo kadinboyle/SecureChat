@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
+using System.Collections;
 
 namespace Server {
 
@@ -17,22 +18,64 @@ namespace Server {
 
         public ServerMain() {
             InitializeComponent();
+            
         }
 
-        int[] fd_chatlist;
-        //WTF
+        //int[] fd_chatlist;
+        List<TcpClient> clientlist = new List<TcpClient>();
+        private int numClients = 0;
 
-        public int runMain(string ip, int port) {
-            Socket socket;
+        public void sendToAll(string msg) {
 
-            sock_fd = tcp_easy_listen(ip, port, 100);
-            //sadff
+        }
+
+        public int runMain(int port) {
+            //negate ip.
+
+            IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
+            IPAddress ipAddress = ipHostInfo.AddressList[0];
+
+            IPAddress tempipAddress = IPAddress.Parse("127.0.0.1");
+
+            TcpListener listener = new TcpListener(tempipAddress, port);
+            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+            listener.Start();
+            //First connect
+            if(listener.Pending())
+
+            int exit = 0;
+            while (exit == 0) {
+                //if NOT pending new connection
+                if (!listener.Pending()) {
+
+                    //check all clients for input
+                    for (int i = 0; i < numClients; i++) {
+                        //if (clientlist[i].Available > 0) {
+                        //read data
+                        //send to all
+                        //}
+                    }
+                }
+                if(listener.Pending()) {
+                    TcpClient newClient = listener.AcceptTcpClient();
+                    MessageBox.Show("New client details: " + newClient.ToString());
+                    //clientlist.Add(newClient);
+                    newClient.Close();
+                    exit = 1;
+                }
+                
+            }
+            listener.Stop();
+
 
             return 0;
         }
 
+        
+
         static int enable_reuse_address(Socket socket) {
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+            return 0;
         }
 
 
@@ -58,10 +101,11 @@ namespace Server {
         }
 
         private void hostBtn_Click(object sender, EventArgs e) {
-            string ip = getIpAddress();
+            //string ip = getIpAddress();
             int port = getPortInteger();
-            if (port == -1 || ip == "null") return;
-            runMain(ip, port);
+            //if (port == -1 || ip == "null") return;
+            runMain(13000);
+           // runMain(port);
         }
 
 
