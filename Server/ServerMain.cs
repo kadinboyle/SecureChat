@@ -59,52 +59,8 @@ namespace Server {
 
         }
 
-        // Thread signal. 
-        public static ManualResetEvent tcpClientConnected =
-            new ManualResetEvent(false);
-
-        // Accept one client connection asynchronously. 
-        public static void DoBeginAcceptTcpClient(TcpListener
-            listener) {
-            // Set the event to nonsignaled state.
-            tcpClientConnected.Reset();
-
-            // Start to listen for connections from a client.
-            console.log("I am listening for connections on " +
-                                              IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
-                                               "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
-
-            // Accept the connection.  
-            // BeginAcceptSocket() creates the accepted socket.
-            listener.BeginAcceptTcpClient(
-                new AsyncCallback(DoAcceptTcpClientCallback),
-                listener);
-
-            // Wait until a connection is made and processed before  
-            // continuing.
-            tcpClientConnected.WaitOne();
-        }
-
-        // Process the client connection. 
-        public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
-            // Get the listener that handles the client request.
-            TcpListener listener = (TcpListener)ar.AsyncState;
-
-            // End the operation and display the received data on  
-            // the console.
-            TcpClient client = listener.EndAcceptTcpClient(ar);
-
-            //ADD CLIENT TO ARRAY
-
-            // Process the connection here. (Add the client to a 
-            // server table, read data, etc.)
-            console.log("Client connected completed");
-
-            // Signal the calling thread to continue.
-            tcpClientConnected.Set();
-
-        }
-
+       
+)
         public int runMain(int port) {
 
             //negate ip.
@@ -120,6 +76,9 @@ namespace Server {
             listener.Start();
             pServerRunning = true;
 
+            console.log("I am listening for connections on " +
+                                              IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
+                                               "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
             //First connect
             //if(listener.Pending())
 
@@ -128,6 +87,18 @@ namespace Server {
             int exit = 0;
             int pRestrictTwo = 1;
             while (exit == 0) {
+                console.log("loop");
+                //Check for new connection
+                if (listener.Pending() && pRestrictTwo == 1) {
+                    console.log("new conn...");
+                    TcpClient newClient = listener.AcceptTcpClient();
+                    //MessageBox.Show("New client details: " + newClient.ToString());
+                    clientlist.Add(newClient);
+                    newClient.Close();
+                    //exit = 1;
+                }
+                console.log("UNBLOCKED");
+
                 //if NOT pending new connection
                 if (!listener.Pending()) {
 
@@ -141,14 +112,7 @@ namespace Server {
                     }
                 }
 
-                if (listener.Pending() && pRestrictTwo == 1) {
-                    TcpClient newClient = listener.AcceptTcpClient();
-                    //MessageBox.Show("New client details: " + newClient.ToString());
-                    clientlist.Add(newClient);
-                    newClient.Close();
-                    exit = 1;
-                }
-
+                
             }
             listener.Stop();
 
