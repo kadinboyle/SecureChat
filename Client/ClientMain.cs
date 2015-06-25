@@ -23,6 +23,10 @@ namespace Client {
             this.txtInput.Leave += new System.EventHandler(this.txtInput_Leave);
         }
 
+        public string bytesToString(byte[] bytes) {
+            return Encoding.UTF8.GetString(bytes);
+        }
+
         private void connectButton_Click(object sender, EventArgs e) {
             clientSelf = new TcpClient("127.0.0.1", 13000);
             IPAddress y = IPAddress.Parse(((IPEndPoint)clientSelf.Client.RemoteEndPoint).Address.ToString());

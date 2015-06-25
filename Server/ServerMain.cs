@@ -34,7 +34,7 @@ namespace Server {
         }
 
         //int[] fd_chatlist;
-        List<TcpClient> clientlist = new List<TcpClient>();
+        List<Client> clientlist = new List<Client>();
         private int numClients = 0;
 
 
@@ -91,10 +91,13 @@ namespace Server {
                 //Check for new connection
                 if (listener.Pending() && pRestrictTwo == 1) {
                     console.log("new conn...");
-                    TcpClient newClient = listener.AcceptTcpClient();
+                    //TcpClient newClient = listener.AcceptTcpClient();
+                    Client newClient = new Client(listener.AcceptTcpClient());
+
+
                     //MessageBox.Show("New client details: " + newClient.ToString());
                     clientlist.Add(newClient);
-                    newClient.Close();
+                    //newClient.Close();
                     //exit = 1;
                 }
                 console.log("UNBLOCKED");
