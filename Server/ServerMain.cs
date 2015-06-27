@@ -23,44 +23,48 @@ namespace Server {
         private IPEndPoint pServerEndpoint;
         private String pServerPort;
         private TcpListener listener;
+        private static ClientList clientlist = new ClientList();
+        private static Dictionary<String, Client> dictRef;
+        private int numClients = 0;
+
+        private int exit = 0;
+
 
         public ServerMain() {
             InitializeComponent();
             console = new ConsoleLogger(txtConsole);
             pServerRunning = false;
             btnStop.Enabled = false;
-
-
+            clientlist = new ClientList();
+            dictRef = clientlist.getDict();
         }
 
-        //int[] fd_chatlist;
-        List<Client> clientlist = new List<Client>();
-        private int numClients = 0;
+   
 
-
-
-        public void sendToAll(string msg) {
+        public void sendToAll(byte[] msg) {
+            console.log(Utils.bytesToString(msg));
+            //This might not work... 
+            //perhaps use dictRef.Values OR clientlist.getDict() ???
+            foreach(var client in clientlist.getDict().Values){
+                client.send(msg);
+            }
 
         }
 
         public void shutdownServer() {
-            //Loop through client list and close all
-            for (int i = 0; i < numClients; i++) {
-                //TCPClient c = clientlist[i];
-                //c.Close();
-
-                //OR CAN I DO THIS? 
-                //clientlist[i].Close();
-            }
+            //Remove all clients and shutdown streams/TCPClient Objects
+            clientlist.ShutdownClients();
 
             //Shutdown listener
             listener.Stop();
-            console.log("Connections Terminated... Server shutting down");
 
+            //Set server status to not running
+            pServerRunning = false;
+            console.log("Closing!...Connections Terminated... Server shutting down");
         }
 
        
-)
+
         public int runMain(int port) {
 
             //negate ip.
@@ -79,48 +83,37 @@ namespace Server {
             console.log("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
                                                "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
-            //First connect
-            //if(listener.Pending())
-
-
-
-            int exit = 0;
+            
             int pRestrictTwo = 1;
             while (exit == 0) {
-                console.log("loop");
+                //console.log("Loop");
                 //Check for new connection
                 if (listener.Pending() && pRestrictTwo == 1) {
                     console.log("new conn...");
-                    //TcpClient newClient = listener.AcceptTcpClient();
-                    Client newClient = new Client(listener.AcceptTcpClient());
 
-
-                    //MessageBox.Show("New client details: " + newClient.ToString());
-                    clientlist.Add(newClient);
-                    //newClient.Close();
-                    //exit = 1;
+                    //Client newClient = new Client(listener.AcceptTcpClient());
+                    //clientlist.Add(newClient);
+                    //SHORTCUT:
+                    clientlist.Add(new Client(listener.AcceptTcpClient()));
+                    console.log("Done adding new client");
                 }
-                console.log("UNBLOCKED");
 
                 //if NOT pending new connection
-                if (!listener.Pending()) {
-
-                    //check all clients for input
-                    for (int i = 0; i < numClients; i++) {
-
-                        //if (clientlist[i].Available > 0) {
-                        //read data
-                        //send to all
-                        //}
+                //if (!listener.Pending()) {
+                    foreach (var client in clientlist.getDict().Values) {
+                        //MessageBox.Show("-->" + client.ClientDetails());
+                        if (client.hasMessage()) {
+                            console.log(client.ClientDetails() + "Wants to send a message!");
+                            sendToAll(client.receive());
+                            //console.log(Utils.bytesToString(client.receive()));
+                            //sendToAll(client.receive());
+                        }
                     }
-                }
-
-                
+                //}
             }
-            listener.Stop();
 
-            //Set server status to not running
-            pServerRunning = false;
+
+            shutdownServer();
             return 0;
         }
 
@@ -188,6 +181,12 @@ namespace Server {
         //Commands
         public const string HELP = "/help";
 
+    }
+
+    public class Utils {
+        public static string bytesToString(byte[] bytes) {
+            return Encoding.UTF8.GetString(bytes);
+        }
     }
 
 

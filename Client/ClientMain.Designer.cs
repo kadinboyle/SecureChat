@@ -1,4 +1,4 @@
-﻿namespace Client
+﻿namespace ClientProgram
 {
     partial class ClientMain
     {
@@ -34,8 +34,9 @@
             this.portText = new System.Windows.Forms.TextBox();
             this.txtInput = new System.Windows.Forms.TextBox();
             this.connectButton = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.txtConsole = new System.Windows.Forms.TextBox();
             this.btnSend = new System.Windows.Forms.Button();
+            this.btnStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -79,7 +80,7 @@
             // 
             // connectButton
             // 
-            this.connectButton.Location = new System.Drawing.Point(348, 55);
+            this.connectButton.Location = new System.Drawing.Point(348, 32);
             this.connectButton.Name = "connectButton";
             this.connectButton.Size = new System.Drawing.Size(75, 23);
             this.connectButton.TabIndex = 5;
@@ -87,13 +88,13 @@
             this.connectButton.UseVisualStyleBackColor = true;
             this.connectButton.Click += new System.EventHandler(this.connectButton_Click);
             // 
-            // textBox1
+            // txtConsole
             // 
-            this.textBox1.Location = new System.Drawing.Point(40, 118);
-            this.textBox1.Multiline = true;
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(458, 88);
-            this.textBox1.TabIndex = 6;
+            this.txtConsole.Location = new System.Drawing.Point(40, 118);
+            this.txtConsole.Multiline = true;
+            this.txtConsole.Name = "txtConsole";
+            this.txtConsole.Size = new System.Drawing.Size(458, 88);
+            this.txtConsole.TabIndex = 6;
             // 
             // btnSend
             // 
@@ -105,13 +106,24 @@
             this.btnSend.UseVisualStyleBackColor = true;
             this.btnSend.Click += new System.EventHandler(this.btnSend_Click);
             // 
+            // btnStop
+            // 
+            this.btnStop.Location = new System.Drawing.Point(348, 61);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(75, 23);
+            this.btnStop.TabIndex = 8;
+            this.btnStop.Text = "Stop";
+            this.btnStop.UseVisualStyleBackColor = true;
+            this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
+            // 
             // ClientMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(539, 262);
+            this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnSend);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.txtConsole);
             this.Controls.Add(this.connectButton);
             this.Controls.Add(this.txtInput);
             this.Controls.Add(this.portText);
@@ -134,8 +146,9 @@
         private System.Windows.Forms.TextBox portText;
         private System.Windows.Forms.TextBox txtInput;
         private System.Windows.Forms.Button connectButton;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox txtConsole;
         private System.Windows.Forms.Button btnSend;
+        private System.Windows.Forms.Button btnStop;
     }
 }
 

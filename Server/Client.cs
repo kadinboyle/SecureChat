@@ -7,13 +7,18 @@ using System.Net;
 using System.Net.Sockets;
 
 namespace Server {
-    class Client {
+    public class Client {
 
-        public static TcpClient tcpClient;
-        public static NetworkStream clientStream;
-        private static IPAddress clientAddress;
-        private static String clientPort;
-        private static String clientId;
+        public TcpClient tcpClient;
+        public NetworkStream clientStream;
+        private IPAddress clientAddress;
+        private String clientPort;
+        private String clientId;
+
+        public Client() {
+
+        }
+
 
         public Client(TcpClient client) {
             tcpClient = client;
@@ -31,15 +36,51 @@ namespace Server {
             tcpClient.Close();
         }
 
-        public void send(String msgToSend) {
+        /**
+         * Sending data (in bytes) to client via its NetworkStream
+         * 
+         * OVERLOADED
+         * @param msgToSend The message to send in string format
+         * 
+         * @return 0 if no data to send passed to buffer
+         * @return -1 if stream unavailable to write to
+         * @return -2 if stream no longer exists
+         * @return 1 if OK and data written
+         **/
+        public int send(String msgToSend) {
             if (clientStream.CanWrite) {
                 Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
-                clientStream.Write(sendBytes, 0, sendBytes.Length);
+                try{
+                    clientStream.Write(sendBytes, 0, sendBytes.Length);
+                    return 1;
+                }catch(ObjectDisposedException){
+                    return -2;
+                }catch(ArgumentNullException){
+                    return 0;
+                }
             }
+            return -1;
+        }
+
+        public int send(Byte[] msgToSend) {
+            if (clientStream.CanWrite) {
+                try {
+                    clientStream.Write(msgToSend, 0, msgToSend.Length);
+                    return 1;
+                } catch (ObjectDisposedException) {
+                    return -2;
+                } catch (ArgumentNullException) {
+                    return 0;
+                }
+            }
+            return -1;
+        }
+
+        public int buffSize() {
+            return (int)tcpClient.ReceiveBufferSize;
         }
 
         public byte[] receive() {
-            if (clientStream.CanRead) {
                 // Reads NetworkStream into a byte buffer. 
                 byte[] bytes = new byte[tcpClient.ReceiveBufferSize];
 
@@ -51,17 +92,27 @@ namespace Server {
                 //string returndata = Encoding.UTF8.GetString(bytes);
 
                 return bytes;
-            }
-            return null;
         }
 
-        public string bytesToString(byte[] bytes) {
-            return Encoding.UTF8.GetString(bytes);
+        public bool hasMessage() {
+            return tcpClient.Available > 0;
         }
 
+        public IPAddress LocalAddress() {
+            return this.clientAddress;
+        }
 
+        public String LocalPort() {
+            return this.clientPort;
+        }
 
+        public IPAddress RemoteAddress() {
+            return (((IPEndPoint)tcpClient.Client.RemoteEndPoint)).Address;
+        }
 
+        public String RemotePort() {
+            return (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
+        }
 
     }
 }
