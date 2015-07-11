@@ -109,28 +109,11 @@ namespace ClientProgram {
                 myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
 
             }
-            //while (clientStream.DataAvailable);
 
             // Print out the received message to the console.
             //Debug.WriteLine("You received the following message : " + myCompleteMessage);
 
             return myCompleteMessage.ToString();
-
-            /*
-
-            // Reads NetworkStream into a byte buffer. 
-            byte[] bytes = new byte[tcpClient.ReceiveBufferSize];
-
-            // Read can return anything from 0 to numBytesToRead.  
-            // This method blocks until at least one byte is read.
-            int read = clientStream.Read(bytes, 0, (int)tcpClient.ReceiveBufferSize);
-            Debug.WriteLine("Receiving....." + read);
-            if (read > 0) return bytes;
-            // Returns the data received from the host to the console. 
-            //string returndata = Encoding.UTF8.GetString(bytes);
-
-            return null;
-             * */
         }
 
         public bool hasMessage() {

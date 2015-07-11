@@ -49,9 +49,9 @@ namespace Server {
 
    
 
-        public void sendToAll(byte[] msg, Client sender) {
+        public void sendToAll(string msg, Client sender) {
             //console.Invoke(Utils.bytesToString(msg));
-            string msgs = sender.ClientIdStr() + ": " + Utils.bytesToString(msg);
+            string msgs = sender.ClientIdStr() + ": " + msg;
             //This might not work... 
             //perhaps use dictRef.Values OR clientlist.getDict() ???
             foreach(var client in clientlist.getDict().Values){
@@ -108,10 +108,9 @@ namespace Server {
                 //if NOT pending new connection, check all clients for input
                     foreach (var client in clientlist.getDict().Values) {
                         if (client.hasMessage()) {
-                            del.Invoke(client.ClientDetails() + "Wants to send a message!");
-                            byte[] msgReceived = client.receive();
-                            if (Utils.Compare(msgReceived, Constants.DISCONNECT_MSG)) {
-                                MessageBox.Show(client.ClientIdStr() + " wants to leave the chat...");
+                            string msgReceived = client.receive();
+                            if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
+                                del.Invoke(client.ClientIdStr() + " leaves the chatroom");
                                 clientlist.Remove(client);
                                 break;
                             }
@@ -247,7 +246,8 @@ namespace Server {
 
     public class Constants {
 
-        public static byte[] DISCONNECT_MSG = Encoding.ASCII.GetBytes("-exit");
+        public static byte[] DISCONNECT_MSGB = Encoding.ASCII.GetBytes("-exit");
+        public static string DISCONNECT_MSG = "-exit";
 
         //Server paramaters
         public const int NAME_SIZE = 40;
@@ -273,6 +273,7 @@ namespace Server {
         }
 
         public static bool Compare(byte[] b1, byte[] b2) {
+            MessageBox.Show("Comparison being made...");
             return Encoding.ASCII.GetString(b1) == Encoding.ASCII.GetString(b2);
         }
 

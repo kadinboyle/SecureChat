@@ -98,7 +98,7 @@ namespace Server {
             return (int)tcpClient.ReceiveBufferSize;
         }
 
-        public byte[] receive() {
+        public string receive() {
 
             byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
             StringBuilder myCompleteMessage = new StringBuilder();
@@ -114,7 +114,7 @@ namespace Server {
             // Print out the received message to the console.
             //Debug.WriteLine("You received the following message : " + myCompleteMessage);
 
-            return readBuffer;
+            return myCompleteMessage.ToString();
 
             /**
                 // Reads NetworkStream into a byte buffer. 
