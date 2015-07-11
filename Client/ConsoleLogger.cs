@@ -5,14 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Server{
+namespace ClientProgram{
     public class ConsoleLogger {
 
         private TextBox consoleBox;
 
         public ConsoleLogger(TextBox _consoleBox) {
             this.consoleBox = _consoleBox;
-            System.Windows.Forms.Form.CheckForIllegalCrossThreadCalls = false;
         }
 
         public void WriteLine(String text) {
@@ -20,13 +19,15 @@ namespace Server{
         }
 
         public void log(String text) {
-            consoleBox.AppendText("Server: " + text + Environment.NewLine);
+            consoleBox.AppendText(text);
+            consoleBox.AppendText(Environment.NewLine); //Why on earth does this need to be on its own line?
         }
 
         public void log(byte[] bytes) {
-            consoleBox.AppendText("Server: " + (Encoding.UTF8.GetString(bytes)) + Environment.NewLine);
+            string text = (String)Encoding.UTF8.GetString(bytes);
+            consoleBox.AppendText(text);
+            consoleBox.AppendText(Environment.NewLine);
         }
-
 
     }
 }

@@ -16,16 +16,18 @@ namespace Server {
             clients = new Dictionary<String, Client>();
         }
 
-        public Dictionary<String, Client> getDict(){
+        public Dictionary<String, Client> getDict() {
             return clients;
         }
 
-        public void Add(Client newClient){
-            clients.Add("C" + idCount++, newClient);
+        public void Add(Client newClient) {
+            newClient.setId("C" + idCount);
+            clients.Add(newClient.ClientIdStr(), newClient);
+            idCount++;
             numClients++;
         }
 
-        //Remove by id
+        //Remove by id NOT TO BE USED, AS IT CURRENTLY DOESNT SHUTDOWN THE CLIENT
         //Overloaded
         public bool Remove(String id) {
             if (clients.Remove(id)) {
@@ -37,11 +39,17 @@ namespace Server {
 
         //remove by client
         public bool Remove(Client clientToRemove) {
-            var item = clients.First(kvp => kvp.Value == clientToRemove);
-            if (clients.Remove(item.Key)) {
-                numClients--;
-                return true;
+            try {
+                var item = clients.First(kvp => kvp.Value == clientToRemove);
+                if (clients.Remove(item.Key)) {
+                    clientToRemove.Close();
+                    numClients--;
+                    return true;
+                }
+            } catch (ArgumentNullException) {
+                return false;
             }
+
             return false;
         }
 

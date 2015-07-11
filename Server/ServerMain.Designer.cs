@@ -36,8 +36,9 @@
             this.txtConsole = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.btnStop = new System.Windows.Forms.Button();
-            this.listView1 = new System.Windows.Forms.ListView();
             this.label4 = new System.Windows.Forms.Label();
+            this.listBoxClients = new System.Windows.Forms.ListBox();
+            this.btnRemoveClient = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -111,14 +112,6 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
-            // listView1
-            // 
-            this.listView1.Location = new System.Drawing.Point(314, 26);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(135, 123);
-            this.listView1.TabIndex = 8;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            // 
             // label4
             // 
             this.label4.AutoSize = true;
@@ -128,13 +121,32 @@
             this.label4.TabIndex = 9;
             this.label4.Text = "Clients:";
             // 
+            // listBoxClients
+            // 
+            this.listBoxClients.FormattingEnabled = true;
+            this.listBoxClients.Location = new System.Drawing.Point(314, 29);
+            this.listBoxClients.Name = "listBoxClients";
+            this.listBoxClients.Size = new System.Drawing.Size(135, 108);
+            this.listBoxClients.TabIndex = 10;
+            // 
+            // btnRemoveClient
+            // 
+            this.btnRemoveClient.Location = new System.Drawing.Point(314, 143);
+            this.btnRemoveClient.Name = "btnRemoveClient";
+            this.btnRemoveClient.Size = new System.Drawing.Size(135, 23);
+            this.btnRemoveClient.TabIndex = 11;
+            this.btnRemoveClient.Text = "Remove Client";
+            this.btnRemoveClient.UseVisualStyleBackColor = true;
+            this.btnRemoveClient.Click += new System.EventHandler(this.btnRemoveClient_Click);
+            // 
             // ServerMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(471, 281);
+            this.Controls.Add(this.btnRemoveClient);
+            this.Controls.Add(this.listBoxClients);
             this.Controls.Add(this.label4);
-            this.Controls.Add(this.listView1);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.txtConsole);
@@ -162,8 +174,9 @@
         private System.Windows.Forms.TextBox txtConsole;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button btnStop;
-        private System.Windows.Forms.ListView listView1;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ListBox listBoxClients;
+        private System.Windows.Forms.Button btnRemoveClient;
     }
 }
 

@@ -17,7 +17,9 @@ namespace Server {
 
     public partial class ServerMain : Form {
 
-        private static ConsoleLogger console;
+       
+
+        private static ConsoleLogger console_obj;
         private Boolean pServerRunning;
         private IPAddress pServerAddress;
         private IPEndPoint pServerEndpoint;
@@ -26,49 +28,53 @@ namespace Server {
         private static ClientList clientlist = new ClientList();
         private static Dictionary<String, Client> dictRef;
         private int numClients = 0;
-
+        
         private int exit = 0;
+        
+
+        public delegate void ObjectDelegate(object obj);
+        public ObjectDelegate del;
+
 
 
         public ServerMain() {
             InitializeComponent();
-            console = new ConsoleLogger(txtConsole);
+            console_obj = new ConsoleLogger(txtConsole);
             pServerRunning = false;
-            btnStop.Enabled = false;
             clientlist = new ClientList();
             dictRef = clientlist.getDict();
+
+            
         }
 
    
 
-        public void sendToAll(byte[] msg) {
-            console.log(Utils.bytesToString(msg));
+        public void sendToAll(byte[] msg, Client sender) {
+            //console.Invoke(Utils.bytesToString(msg));
+            string msgs = sender.ClientIdStr() + ": " + Utils.bytesToString(msg);
             //This might not work... 
             //perhaps use dictRef.Values OR clientlist.getDict() ???
             foreach(var client in clientlist.getDict().Values){
-                client.send(msg);
+                client.send(msgs);
             }
 
         }
 
+        //Remove and terminate all client connections and streams, then stop the listener object
         public void shutdownServer() {
-            //Remove all clients and shutdown streams/TCPClient Objects
             clientlist.ShutdownClients();
-
-            //Shutdown listener
             listener.Stop();
-
-            //Set server status to not running
             pServerRunning = false;
-            console.log("Closing!...Connections Terminated... Server shutting down");
+            console_obj.log("Closing!...Connections Terminated... Server shutting down");
         }
 
        
 
-        public int runMain(int port) {
+        public void runMain(IPAddress address, int port) {
+
+           // ObjectDelegate del = (ObjectDelegate)delg; 
 
             //negate ip.
-
             IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
             pServerAddress = ipHostInfo.AddressList[0];
 
@@ -80,58 +86,109 @@ namespace Server {
             listener.Start();
             pServerRunning = true;
 
-            console.log("I am listening for connections on " +
+            del.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
                                                "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
             
-            int pRestrictTwo = 1;
             while (exit == 0) {
                 //console.log("Loop");
                 //Check for new connection
-                if (listener.Pending() && pRestrictTwo == 1) {
-                    console.log("new conn...");
+                if (listener.Pending()) {
+                    del.Invoke("New connection request...");
 
-                    //Client newClient = new Client(listener.AcceptTcpClient());
-                    //clientlist.Add(newClient);
-                    //SHORTCUT:
-                    clientlist.Add(new Client(listener.AcceptTcpClient()));
-                    console.log("Done adding new client");
+                    Client newClient = new Client(listener.AcceptTcpClient());
+                    //clientlist.Add(new Client(listener.AcceptTcpClient()));
+                    clientlist.Add(newClient);
+                    listBoxClients.DataSource = new BindingSource(dictRef, null);
+                    listBoxClients.DisplayMember = "Key";
+                    listBoxClients.ValueMember = "Value";
+                    del.Invoke("Done adding new client");
                 }
 
-                //if NOT pending new connection
-                //if (!listener.Pending()) {
+                //if NOT pending new connection, check all clients for input
                     foreach (var client in clientlist.getDict().Values) {
-                        //MessageBox.Show("-->" + client.ClientDetails());
                         if (client.hasMessage()) {
-                            console.log(client.ClientDetails() + "Wants to send a message!");
-                            sendToAll(client.receive());
-                            //console.log(Utils.bytesToString(client.receive()));
-                            //sendToAll(client.receive());
+                            del.Invoke(client.ClientDetails() + "Wants to send a message!");
+                            byte[] msgReceived = client.receive();
+                            if (Utils.Compare(msgReceived, Constants.DISCONNECT_MSG)) {
+                                MessageBox.Show(client.ClientIdStr() + " wants to leave the chat...");
+                                clientlist.Remove(client);
+                                break;
+                            }
+                            else {
+                                sendToAll(msgReceived, client);
+                            }
+
                         }
                     }
-                //}
             }
-
-
             shutdownServer();
-            return 0;
+
         }
+
+        private void updateTextBox(object obj) {
+            if (InvokeRequired){  
+
+                 // we then create the delegate again  
+                 // if you've made it global then you won't need to do this  
+                 ObjectDelegate method = new ObjectDelegate(updateTextBox);  
+                 // we then simply invoke it and return  
+
+                 Invoke(method, obj);  
+                 return;  
+          }
+            if (obj is byte[]) console_obj.log((byte[])obj);
+            else console_obj.log((string)obj);
+        }
+
+        void bgWorker_serverLoop(object sender, DoWorkEventArgs e) {
+            List<object> args = e.Argument as List<object>;
+            runMain((IPAddress)args[0], (int)args[1]);
+        }
+
+        void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
+            if (e.Error != null) {
+                MessageBox.Show(e.Error.Message);
+            }
+            else {
+                shutdownServer();
+            }
+        }
+
+        //TODO: Make delegates for accessing Form controls (console text box) from background worker threads
 
         private void hostBtn_Click(object sender, EventArgs e) {
             //string ip = getIpAddress();
             //int port = getPortInteger();
             //if (port == -1 || ip == "null") return;
-            btnHost.Enabled = false;
-            btnStop.Enabled = true;
-            runMain(13000);
-            // runMain(port);
+            //btnHost.Enabled = false;
+            //btnStop.Enabled = true;
+
+            //DELETE:
+            int port = 13000;
+            IPAddress ip = IPAddress.Parse("127.0.0.1");
+            //List<object> args = new List<object> { ip, port };
+
+            // first thing we do is create a delegate pointing to update method  
+
+            del = new ObjectDelegate(updateTextBox);  
+
+            // Set up background worker object & hook up handlers
+            BackgroundWorker bgWorker;
+            bgWorker = new BackgroundWorker();
+            bgWorker.DoWork += new DoWorkEventHandler(bgWorker_serverLoop);
+            bgWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgWorker_RunWorkerCompleted);
+
+            // Launch background thread to loop for server response to input
+            bgWorker.RunWorkerAsync(new List<object> { ip, port});
+      
 
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
-            MessageBox.Show("GGGEE");
-            if (btnStop.Enabled == true && pServerRunning == true) {
-
+            if (pServerRunning == true) {
+                //shutdownServer();
+                exit = 1;
             }
         }
 
@@ -160,6 +217,28 @@ namespace Server {
             return (string)addressText.Text;
         }
 
+        private void btnRemoveClient_Click(object sender, EventArgs e) {
+
+            try {
+               
+                //KEEP THIS FOR LATER: listBoxClients.DataSourceChanged
+                clientlist.Remove(((Client)(listBoxClients.SelectedValue)).ClientIdStr());
+                MessageBox.Show("WTF BRUH 222");
+                listBoxClients.Items.Remove(listBoxClients.SelectedItem);
+                
+                listBoxClients.DataSource = listBoxClients;
+                MessageBox.Show("WTF BRUH 333");
+
+               
+            }
+            catch(Exception){
+
+            }
+
+            //listBox1.DataSource = null;
+            //listBoxClients.DataSource = _items;
+        }
+
 
 
 
@@ -168,10 +247,11 @@ namespace Server {
 
     public class Constants {
 
+        public static byte[] DISCONNECT_MSG = Encoding.ASCII.GetBytes("-exit");
+
         //Server paramaters
         public const int NAME_SIZE = 40;
         public const int MAX_CHATS = 40;
-        public const int BUFF_SIZE = 100000;
         public const int MAX_CUSTOM_NAME = 15;
 
         //Messages
@@ -187,6 +267,22 @@ namespace Server {
         public static string bytesToString(byte[] bytes) {
             return Encoding.UTF8.GetString(bytes);
         }
+
+        public static byte[] stringToBytes(string str) {
+            return Encoding.UTF8.GetBytes(str);
+        }
+
+        public static bool Compare(byte[] b1, byte[] b2) {
+            return Encoding.ASCII.GetString(b1) == Encoding.ASCII.GetString(b2);
+        }
+
+        public static byte[] Combine(byte[] first, byte[] second) {
+            byte[] ret = new byte[first.Length + second.Length];
+            Buffer.BlockCopy(first, 0, ret, 0, first.Length);
+            Buffer.BlockCopy(second, 0, ret, first.Length, second.Length);
+            return ret;
+        }
+
     }
 
 

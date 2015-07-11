@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace ClientProgram {
     static class Program {
@@ -14,7 +15,7 @@ namespace ClientProgram {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new ClientMain());
-            //ojuo
         }
+
     }
 }
