@@ -108,9 +108,10 @@ namespace Server {
                 //if NOT pending new connection, check all clients for input
                     foreach (var client in clientlist.getDict().Values) {
                         if (client.hasMessage()) {
+                            del.Invoke(client.ClientDetails() + "Wants to send a message!");
                             string msgReceived = client.receive();
                             if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
-                                del.Invoke(client.ClientIdStr() + " leaves the chatroom");
+                                del.Invoke(client.ClientIdStr() + " wants to leave the chat...");
                                 clientlist.Remove(client);
                                 break;
                             }

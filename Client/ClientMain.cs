@@ -62,6 +62,7 @@ namespace ClientProgram {
             }
             else {
                 clientSelf.Close();
+                //clientSelf = null;
             }
         }
 
