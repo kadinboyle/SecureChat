@@ -12,10 +12,7 @@ namespace ClientProgram{
 
         public ConsoleLogger(TextBox _consoleBox) {
             this.consoleBox = _consoleBox;
-        }
-
-        public void WriteLine(String text) {
-            consoleBox.AppendText(text + Environment.NewLine);
+            this.consoleBox.ScrollBars = ScrollBars.Vertical;
         }
 
         public void log(String text) {

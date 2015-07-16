@@ -33,7 +33,8 @@ namespace Server {
         
 
         public delegate void ObjectDelegate(object obj);
-        public ObjectDelegate del;
+        public ObjectDelegate del_console;
+        public ObjectDelegate del_list;
 
 
 
@@ -72,47 +73,42 @@ namespace Server {
 
         public void runMain(IPAddress address, int port) {
 
-           // ObjectDelegate del = (ObjectDelegate)delg; 
-
             //negate ip.
             IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
-            pServerAddress = ipHostInfo.AddressList[0];
-
-            //Temp
-            IPAddress tempipAddress = IPAddress.Parse("127.0.0.1");
+           // pServerAddress = ipHostInfo.AddressList[0];
+            IPAddress tempipAddress = ipHostInfo.AddressList[0];
 
             listener = new TcpListener(tempipAddress, port);
             listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             listener.Start();
             pServerRunning = true;
 
-            del.Invoke("I am listening for connections on " +
+            del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
                                                "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
             
             while (exit == 0) {
-                //console.log("Loop");
+
                 //Check for new connection
                 if (listener.Pending()) {
-                    del.Invoke("New connection request...");
+                    del_console.Invoke("New connection request...");
 
                     Client newClient = new Client(listener.AcceptTcpClient());
                     //clientlist.Add(new Client(listener.AcceptTcpClient()));
                     clientlist.Add(newClient);
-                    listBoxClients.DataSource = new BindingSource(dictRef, null);
-                    listBoxClients.DisplayMember = "Key";
-                    listBoxClients.ValueMember = "Value";
-                    del.Invoke("Done adding new client");
+                    del_list.Invoke("msg");
+                    del_console.Invoke("Done adding new client");
                 }
 
                 //if NOT pending new connection, check all clients for input
-                    foreach (var client in clientlist.getDict().Values) {
+                    foreach (var client in clientlist.getDict().Values.ToList()) {
                         if (client.hasMessage()) {
-                            del.Invoke(client.ClientDetails() + "Wants to send a message!");
+                            del_console.Invoke(client.ClientDetails() + "Wants to send a message!");
                             string msgReceived = client.receive();
                             if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
-                                del.Invoke(client.ClientIdStr() + " wants to leave the chat...");
+                                del_console.Invoke(client.ClientIdStr() + " wants to leave the chat...");
                                 clientlist.Remove(client);
+                                del_list.Invoke("msg");
                                 break;
                             }
                             else {
@@ -121,16 +117,32 @@ namespace Server {
 
                         }
                     }
+                    
             }
             shutdownServer();
 
         }
 
+        private void updateListBox(object obj) {
+            if (InvokeRequired) {
+                ObjectDelegate method = new ObjectDelegate(updateListBox);
+                Invoke(method, obj);
+                return;
+            }
+            //Update List Box here.
+            listBoxClients.DataSource = new BindingSource(dictRef, null);
+            listBoxClients.DisplayMember = "Key";
+            listBoxClients.ValueMember = "Value";
+        }
+
         private void updateTextBox(object obj) {
+
+            //Check if control was created on a different thread.
+            //If so, we need to call an Invoke method...
             if (InvokeRequired){  
 
                  // we then create the delegate again  
-                 // if you've made it global then you won't need to do this  
+                 // if its global then i won't need to do this  
                  ObjectDelegate method = new ObjectDelegate(updateTextBox);  
                  // we then simply invoke it and return  
 
@@ -150,9 +162,7 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-            else {
                 shutdownServer();
-            }
         }
 
         //TODO: Make delegates for accessing Form controls (console text box) from background worker threads
@@ -169,9 +179,9 @@ namespace Server {
             IPAddress ip = IPAddress.Parse("127.0.0.1");
             //List<object> args = new List<object> { ip, port };
 
-            // first thing we do is create a delegate pointing to update method  
-
-            del = new ObjectDelegate(updateTextBox);  
+            //Set up our delegates for accessing console TextBox and Client ListBox cross thread
+            del_console = new ObjectDelegate(updateTextBox);
+            del_list = new ObjectDelegate(updateListBox);
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -181,13 +191,10 @@ namespace Server {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync(new List<object> { ip, port});
-      
-
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
             if (pServerRunning == true) {
-                //shutdownServer();
                 exit = 1;
             }
         }
@@ -222,17 +229,16 @@ namespace Server {
             try {
                
                 //KEEP THIS FOR LATER: listBoxClients.DataSourceChanged
+                MessageBox.Show("FIRST");
+                //listBoxClients.Items.Remove(listBoxClients.SelectedItem);
+                MessageBox.Show("WTF BRUH 111");  
                 clientlist.Remove(((Client)(listBoxClients.SelectedValue)).ClientIdStr());
-                MessageBox.Show("WTF BRUH 222");
-                listBoxClients.Items.Remove(listBoxClients.SelectedItem);
-                
-                listBoxClients.DataSource = listBoxClients;
-                MessageBox.Show("WTF BRUH 333");
-
-               
+                MessageBox.Show("WTF BRUH 222");  
+                del_list.Invoke("msg");
+                MessageBox.Show("WTF BRUH 333");   
             }
-            catch(Exception){
-
+            catch(Exception exc){
+                MessageBox.Show("Exception" + exc.Message);
             }
 
             //listBox1.DataSource = null;
@@ -245,7 +251,7 @@ namespace Server {
 
     }
 
-    public class Constants {
+    public static class Constants {
 
         public static byte[] DISCONNECT_MSGB = Encoding.ASCII.GetBytes("-exit");
         public static string DISCONNECT_MSG = "-exit";
@@ -264,7 +270,7 @@ namespace Server {
 
     }
 
-    public class Utils {
+    public static class Utils {
         public static string bytesToString(byte[] bytes) {
             return Encoding.UTF8.GetString(bytes);
         }

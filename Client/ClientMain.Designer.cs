@@ -70,6 +70,7 @@
             this.portText.Name = "portText";
             this.portText.Size = new System.Drawing.Size(225, 20);
             this.portText.TabIndex = 3;
+            this.portText.Text = "13000";
             // 
             // txtInput
             // 

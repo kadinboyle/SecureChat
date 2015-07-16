@@ -69,7 +69,13 @@ namespace ClientProgram {
 
 
         private void connectButton_Click(object sender, EventArgs e) {
-            clientSelf = new Client(new TcpClient("127.0.0.1", 13000));
+            //clientSelf = new Client(new TcpClient("127.0.0.1", 13000));
+
+            String addr = getIpAddress();
+            int port = getPortInteger();
+            if(addr.Equals("null") || port.Equals(-1)) return;
+            clientSelf = new Client(new TcpClient(addr, port));
+
             IPAddress y = clientSelf.RemoteAddress();
             MessageBox.Show("Connected to " + y + " on port: ");
 
@@ -82,6 +88,24 @@ namespace ClientProgram {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync();
+        }
+
+        public int getPortInteger() {
+            try {
+                int port = Int32.Parse(portText.Text);
+                return port;
+            } catch (Exception) {
+                MessageBox.Show("You must enter an integer between X and Y!", "Error!");
+                return -1;
+            }
+        }
+
+        public string getIpAddress() {
+            if ((addressText.Text).Length < 1) {
+                MessageBox.Show("You must enter an Ip Address!");
+                return "null";
+            }
+            return (string)addressText.Text;
         }
 
         private void btnSend_Click(object sender, EventArgs e) {
