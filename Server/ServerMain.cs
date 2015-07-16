@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace Server {
@@ -26,7 +27,7 @@ namespace Server {
         private String pServerPort;
         private TcpListener listener;
         private static ClientList clientlist = new ClientList();
-        private static Dictionary<String, Client> dictRef;
+        private static ConcurrentDictionary<String, Client> dictRef;
         private int numClients = 0;
         
         private int exit = 0;

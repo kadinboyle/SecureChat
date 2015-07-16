@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,21 +9,21 @@ using System.Threading.Tasks;
 namespace Server {
     public class ClientList {
 
-        private Dictionary<String, Client> clients;
+        private ConcurrentDictionary<String, Client> clients;
         private int idCount = 1000;
         private int numClients = 0;
 
         public ClientList() {
-            clients = new Dictionary<String, Client>();
+            clients = new ConcurrentDictionary<String, Client>();
         }
 
-        public Dictionary<String, Client> getDict() {
+        public ConcurrentDictionary<String, Client> getDict() {
             return clients;
         }
 
         public void Add(Client newClient) {
             newClient.setId("C" + idCount);
-            clients.Add(newClient.ClientIdStr(), newClient);
+            clients.GetOrAdd(newClient.ClientIdStr(), newClient);
             idCount++;
             numClients++;
         }
@@ -30,7 +31,8 @@ namespace Server {
         //Remove by id NOT TO BE USED, AS IT CURRENTLY DOESNT SHUTDOWN THE CLIENT
         //Overloaded
         public bool Remove(String id) {
-            if (clients.Remove(id)) {
+            Client removed;
+            if (clients.TryRemove(id, out removed)) {
                 numClients--;
                 return true;
             }
@@ -39,17 +41,13 @@ namespace Server {
 
         //remove by client
         public bool Remove(Client clientToRemove) {
-            try {
-                var item = clients.First(kvp => kvp.Value == clientToRemove);
-                if (clients.Remove(item.Key)) {
-                    clientToRemove.Close();
-                    numClients--;
-                    return true;
-                }
-            } catch (ArgumentNullException) {
-                return false;
+            //var item = clients.First(kvp => kvp.Value == clientToRemove);
+            Client removed;
+            if (clients.TryRemove(clientToRemove.ClientIdStr(), out removed)) {
+                removed.Close();
+                numClients--;
+                return true;
             }
-
             return false;
         }
 
