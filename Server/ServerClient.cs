@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Diagnostics;
 
 namespace Server {
-    public class Client{
+    public class ServerClient{
 
         public TcpClient tcpClient;
         public NetworkStream clientStream;
@@ -17,12 +17,12 @@ namespace Server {
         private String clientIdStr;
         private byte[] clientIdBytes;
 
-        public Client() {
+        public ServerClient() {
 
         }
 
 
-        public Client(TcpClient client) {
+        public ServerClient(TcpClient client) {
             tcpClient = client;
             clientStream = tcpClient.GetStream();
             clientAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
@@ -38,15 +38,12 @@ namespace Server {
             return this.clientIdStr;
         }
 
-        public byte[] ClientIdBytes() {
-            return this.clientIdBytes;
-        }
-
         public String ClientDetails() {
             return String.Format("Client [{0}]: Address: {1}:{2}", clientIdStr, clientAddress, clientPort);
         }
 
         public void Close() {
+            send("-exit");
             clientStream.Close();
             tcpClient.Close();
         }
@@ -94,9 +91,6 @@ namespace Server {
             return -1;
         }
 
-        public int buffSize() {
-            return (int)tcpClient.ReceiveBufferSize;
-        }
 
         public string receive() {
 
@@ -115,19 +109,6 @@ namespace Server {
             //Debug.WriteLine("You received the following message : " + myCompleteMessage);
 
             return myCompleteMessage.ToString();
-
-            /**
-                // Reads NetworkStream into a byte buffer. 
-                byte[] bytes = new byte[tcpClient.ReceiveBufferSize];
-
-                // Read can return anything from 0 to numBytesToRead.  
-                // This method blocks until at least one byte is read.
-                clientStream.Read(bytes, 0, (int)tcpClient.ReceiveBufferSize);
-
-                // Returns the data received from the host to the console. 
-                //string returndata = Encoding.UTF8.GetString(bytes);
-
-                return bytes;*/
         }
 
         public bool hasMessage() {

@@ -18,7 +18,7 @@ namespace Server {
 
     public partial class ServerMain : Form {
 
-       
+        //TODO: Ensure all access to ConcurrentDictionary is done through clientlist class
 
         private static ConsoleLogger console_obj;
         private Boolean pServerRunning;
@@ -27,11 +27,11 @@ namespace Server {
         private String pServerPort;
         private TcpListener listener;
         private static ClientList clientlist = new ClientList();
-        private static ConcurrentDictionary<String, Client> dictRef;
+        private static ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
-        
+
         private int exit = 0;
-        
+
 
         public delegate void ObjectDelegate(object obj);
         public ObjectDelegate del_console;
@@ -46,17 +46,17 @@ namespace Server {
             clientlist = new ClientList();
             dictRef = clientlist.getDict();
 
-            
+
         }
 
-   
 
-        public void sendToAll(string msg, Client sender) {
+
+        public void sendToAll(string msg, ServerClient sender) {
             //console.Invoke(Utils.bytesToString(msg));
             string msgs = sender.ClientIdStr() + ": " + msg;
             //This might not work... 
             //perhaps use dictRef.Values OR clientlist.getDict() ???
-            foreach(var client in clientlist.getDict().Values){
+            foreach (var client in clientlist.getDict().Values) {
                 client.send(msgs);
             }
 
@@ -70,16 +70,13 @@ namespace Server {
             console_obj.log("Closing!...Connections Terminated... Server shutting down");
         }
 
-       
+
 
         public void runMain(IPAddress address, int port) {
 
-            //negate ip.
-            IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
-           // pServerAddress = ipHostInfo.AddressList[0];
-            IPAddress tempipAddress = ipHostInfo.AddressList[0];
+            
 
-            listener = new TcpListener(tempipAddress, port);
+            listener = new TcpListener(address, port);
             listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             listener.Start();
             pServerRunning = true;
@@ -87,14 +84,14 @@ namespace Server {
             del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
                                                "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
-            
+
             while (exit == 0) {
 
                 //Check for new connection
                 if (listener.Pending()) {
                     del_console.Invoke("New connection request...");
 
-                    Client newClient = new Client(listener.AcceptTcpClient());
+                    ServerClient newClient = new ServerClient(listener.AcceptTcpClient());
                     //clientlist.Add(new Client(listener.AcceptTcpClient()));
                     clientlist.Add(newClient);
                     del_list.Invoke("msg");
@@ -102,29 +99,30 @@ namespace Server {
                 }
 
                 //if NOT pending new connection, check all clients for input
-                    foreach (var client in clientlist.getDict().Values.ToList()) {
-                        if (client.hasMessage()) {
-                            del_console.Invoke(client.ClientDetails() + "Wants to send a message!");
-                            string msgReceived = client.receive();
-                            if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
-                                del_console.Invoke(client.ClientIdStr() + " wants to leave the chat...");
-                                clientlist.Remove(client);
-                                del_list.Invoke("msg");
-                                break;
-                            }
-                            else {
-                                sendToAll(msgReceived, client);
-                            }
-
+                foreach (var client in clientlist.getDict().Values.ToList()) {
+                    if (client.hasMessage()) {
+                        del_console.Invoke(client.ClientDetails() + "Wants to send a message!");
+                        string msgReceived = client.receive();
+                        if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
+                            del_console.Invoke(client.ClientIdStr() + " wants to leave the chat...");
+                            clientlist.Remove(client);
+                            del_list.Invoke("msg");
+                            break;
                         }
+                        else {
+                            sendToAll(msgReceived, client);
+                        }
+
                     }
-                    
+                }
+
             }
             shutdownServer();
 
         }
 
         private void updateListBox(object obj) {
+            //Check if an Invoke up thread tree is required, if not we are on right thread
             if (InvokeRequired) {
                 ObjectDelegate method = new ObjectDelegate(updateListBox);
                 Invoke(method, obj);
@@ -140,16 +138,16 @@ namespace Server {
 
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method...
-            if (InvokeRequired){  
+            if (InvokeRequired) {
 
-                 // we then create the delegate again  
-                 // if its global then i won't need to do this  
-                 ObjectDelegate method = new ObjectDelegate(updateTextBox);  
-                 // we then simply invoke it and return  
+                // we then create the delegate again  
+                // if its global then i won't need to do this  
+                ObjectDelegate method = new ObjectDelegate(updateTextBox);
+                // we then simply invoke it and return  
 
-                 Invoke(method, obj);  
-                 return;  
-          }
+                Invoke(method, obj);
+                return;
+            }
             if (obj is byte[]) console_obj.log((byte[])obj);
             else console_obj.log((string)obj);
         }
@@ -163,7 +161,7 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-                shutdownServer();
+            shutdownServer();
         }
 
         //TODO: Make delegates for accessing Form controls (console text box) from background worker threads
@@ -175,9 +173,19 @@ namespace Server {
             //btnHost.Enabled = false;
             //btnStop.Enabled = true;
 
+            //negate ip.
+            //IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
+            IPAddress ip2 = Dns.GetHostEntry(string.Empty).AddressList[1];
+
+            IPAddress ip = Array.Find(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+
+
+            // pServerAddress = ipHostInfo.AddressList[0];
+            //IPAddress tempipAddress = ipHostInfo.AddressList[0];
+
             //DELETE:
             int port = 13000;
-            IPAddress ip = IPAddress.Parse("127.0.0.1");
+            //IPAddress ip = IPAddress.Parse("127.0.0.1");
             //List<object> args = new List<object> { ip, port };
 
             //Set up our delegates for accessing console TextBox and Client ListBox cross thread
@@ -191,7 +199,7 @@ namespace Server {
             bgWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgWorker_RunWorkerCompleted);
 
             // Launch background thread to loop for server response to input
-            bgWorker.RunWorkerAsync(new List<object> { ip, port});
+            bgWorker.RunWorkerAsync(new List<object> { ip, port });
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
@@ -226,19 +234,11 @@ namespace Server {
         }
 
         private void btnRemoveClient_Click(object sender, EventArgs e) {
-
+            if (dictRef.IsEmpty) return;
             try {
-               
-                //KEEP THIS FOR LATER: listBoxClients.DataSourceChanged
-                MessageBox.Show("FIRST");
-                //listBoxClients.Items.Remove(listBoxClients.SelectedItem);
-                MessageBox.Show("WTF BRUH 111");  
-                clientlist.Remove(((Client)(listBoxClients.SelectedValue)).ClientIdStr());
-                MessageBox.Show("WTF BRUH 222");  
+                clientlist.Remove(((ServerClient)(listBoxClients.SelectedValue)).ClientIdStr());
                 del_list.Invoke("msg");
-                MessageBox.Show("WTF BRUH 333");   
-            }
-            catch(Exception exc){
+            } catch (Exception exc) {
                 MessageBox.Show("Exception" + exc.Message);
             }
 

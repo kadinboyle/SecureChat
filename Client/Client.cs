@@ -40,10 +40,6 @@ namespace ClientProgram {
             return this.clientIdStr;
         }
 
-        public byte[] ClientIdBytes() {
-            return this.clientIdBytes;
-        }
-
         public String ClientDetails() {
             return String.Format("Client [{0}]: Address: {1}:{2}", clientIdStr, clientAddress, clientPort);
         }

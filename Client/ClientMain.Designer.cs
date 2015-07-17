@@ -30,10 +30,10 @@
         {
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.addressText = new System.Windows.Forms.TextBox();
-            this.portText = new System.Windows.Forms.TextBox();
+            this.txtAddress = new System.Windows.Forms.TextBox();
+            this.txtPort = new System.Windows.Forms.TextBox();
             this.txtInput = new System.Windows.Forms.TextBox();
-            this.connectButton = new System.Windows.Forms.Button();
+            this.btnConnect = new System.Windows.Forms.Button();
             this.txtConsole = new System.Windows.Forms.TextBox();
             this.btnSend = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
@@ -57,20 +57,20 @@
             this.label2.TabIndex = 1;
             this.label2.Text = "Port:";
             // 
-            // addressText
+            // txtAddress
             // 
-            this.addressText.Location = new System.Drawing.Point(104, 29);
-            this.addressText.Name = "addressText";
-            this.addressText.Size = new System.Drawing.Size(225, 20);
-            this.addressText.TabIndex = 2;
+            this.txtAddress.Location = new System.Drawing.Point(104, 29);
+            this.txtAddress.Name = "txtAddress";
+            this.txtAddress.Size = new System.Drawing.Size(225, 20);
+            this.txtAddress.TabIndex = 2;
             // 
-            // portText
+            // txtPort
             // 
-            this.portText.Location = new System.Drawing.Point(104, 57);
-            this.portText.Name = "portText";
-            this.portText.Size = new System.Drawing.Size(225, 20);
-            this.portText.TabIndex = 3;
-            this.portText.Text = "13000";
+            this.txtPort.Location = new System.Drawing.Point(104, 57);
+            this.txtPort.Name = "txtPort";
+            this.txtPort.Size = new System.Drawing.Size(225, 20);
+            this.txtPort.TabIndex = 3;
+            this.txtPort.Text = "13000";
             // 
             // txtInput
             // 
@@ -79,15 +79,15 @@
             this.txtInput.Size = new System.Drawing.Size(414, 20);
             this.txtInput.TabIndex = 4;
             // 
-            // connectButton
+            // btnConnect
             // 
-            this.connectButton.Location = new System.Drawing.Point(348, 32);
-            this.connectButton.Name = "connectButton";
-            this.connectButton.Size = new System.Drawing.Size(75, 23);
-            this.connectButton.TabIndex = 5;
-            this.connectButton.Text = "Connect";
-            this.connectButton.UseVisualStyleBackColor = true;
-            this.connectButton.Click += new System.EventHandler(this.connectButton_Click);
+            this.btnConnect.Location = new System.Drawing.Point(348, 32);
+            this.btnConnect.Name = "btnConnect";
+            this.btnConnect.Size = new System.Drawing.Size(75, 23);
+            this.btnConnect.TabIndex = 5;
+            this.btnConnect.Text = "Connect";
+            this.btnConnect.UseVisualStyleBackColor = true;
+            this.btnConnect.Click += new System.EventHandler(this.connectButton_Click);
             // 
             // txtConsole
             // 
@@ -125,10 +125,10 @@
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnSend);
             this.Controls.Add(this.txtConsole);
-            this.Controls.Add(this.connectButton);
+            this.Controls.Add(this.btnConnect);
             this.Controls.Add(this.txtInput);
-            this.Controls.Add(this.portText);
-            this.Controls.Add(this.addressText);
+            this.Controls.Add(this.txtPort);
+            this.Controls.Add(this.txtAddress);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.MaximizeBox = false;
@@ -143,10 +143,10 @@
 
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox addressText;
-        private System.Windows.Forms.TextBox portText;
+        private System.Windows.Forms.TextBox txtAddress;
+        private System.Windows.Forms.TextBox txtPort;
         private System.Windows.Forms.TextBox txtInput;
-        private System.Windows.Forms.Button connectButton;
+        private System.Windows.Forms.Button btnConnect;
         private System.Windows.Forms.TextBox txtConsole;
         private System.Windows.Forms.Button btnSend;
         private System.Windows.Forms.Button btnStop;

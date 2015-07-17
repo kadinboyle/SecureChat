@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 namespace Server {
     public class ClientList {
 
-        private ConcurrentDictionary<String, Client> clients;
+        private ConcurrentDictionary<String, ServerClient> clients;
         private int idCount = 1000;
         private int numClients = 0;
 
         public ClientList() {
-            clients = new ConcurrentDictionary<String, Client>();
+            clients = new ConcurrentDictionary<String, ServerClient>();
         }
 
-        public ConcurrentDictionary<String, Client> getDict() {
+        public ConcurrentDictionary<String, ServerClient> getDict() {
             return clients;
         }
 
-        public void Add(Client newClient) {
+        public void Add(ServerClient newClient) {
             newClient.setId("C" + idCount);
             clients.GetOrAdd(newClient.ClientIdStr(), newClient);
             idCount++;
@@ -31,8 +31,9 @@ namespace Server {
         //Remove by id NOT TO BE USED, AS IT CURRENTLY DOESNT SHUTDOWN THE CLIENT
         //Overloaded
         public bool Remove(String id) {
-            Client removed;
+            ServerClient removed;
             if (clients.TryRemove(id, out removed)) {
+                removed.Close();
                 numClients--;
                 return true;
             }
@@ -40,9 +41,9 @@ namespace Server {
         }
 
         //remove by client
-        public bool Remove(Client clientToRemove) {
+        public bool Remove(ServerClient clientToRemove) {
             //var item = clients.First(kvp => kvp.Value == clientToRemove);
-            Client removed;
+            ServerClient removed;
             if (clients.TryRemove(clientToRemove.ClientIdStr(), out removed)) {
                 removed.Close();
                 numClients--;
@@ -59,8 +60,8 @@ namespace Server {
         }
 
 
-        public Client findClientById(String id) {
-            Client found = null;
+        public ServerClient findClientById(String id) {
+            ServerClient found = null;
             clients.TryGetValue(id, out found);
             return found;
         }
