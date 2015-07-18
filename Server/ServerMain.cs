@@ -98,7 +98,7 @@ namespace Server {
             ShutdownServer();
         }
 
-        // ================ CALLBACK METHODS ================ //
+        // ================ ASYNC CALLBACK METHODS ================ //
 
         // Thread signal. 
         public static ManualResetEvent tcpClientConnected = new ManualResetEvent(false);
