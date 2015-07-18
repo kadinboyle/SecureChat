@@ -25,7 +25,7 @@ namespace Server {
         private IPAddress pServerAddress;
         private IPEndPoint pServerEndpoint;
         private String pServerPort;
-        private TcpListener listener;
+        private TcpListener tcpListener;
         private static ClientList clientlist = new ClientList();
         private static ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
@@ -33,8 +33,8 @@ namespace Server {
 
 
         public delegate void ObjectDelegate(object obj);
-        public ObjectDelegate del_console;
-        public ObjectDelegate del_list;
+        public static ObjectDelegate del_console;
+        public static ObjectDelegate del_list;
 
 
         public ServerMain() {
@@ -53,27 +53,21 @@ namespace Server {
         public void RunMain(IPAddress address, int port) {
             pServerRunning = true;
 
-            listener = new TcpListener(address, port);
-            listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            listener.Start();
+            tcpListener = new TcpListener(address, port);
+            tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+            tcpListener.Start();
             pServerRunning = true;
 
             del_console.Invoke("I am listening for connections on " +
-                                              IPAddress.Parse(((IPEndPoint)listener.LocalEndpoint).Address.ToString()) +
-                                               "on port number " + ((IPEndPoint)listener.LocalEndpoint).Port.ToString());
+                                              IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
+                                               "on port number " + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
 
             while (exit == 0) {
 
                 //Check for new connection
-                if (listener.Pending()) {
+                if (tcpListener.Pending()) {
                     del_console.Invoke("New connection request...");
-
-                    ServerClient newClient = new ServerClient(listener.AcceptTcpClient());
-                    //clientlist.Add(new ServerClient(listener.AcceptTcpClient()));
-                    clientlist.Add(newClient);
-
-                    del_list.Invoke(null);
-                    del_console.Invoke("Done adding new client");
+                    DoBeginAcceptTcpClient(tcpListener);
                 }
 
                 //if NOT pending new connection, check all clients for input
@@ -105,6 +99,7 @@ namespace Server {
 
         // Accept one client connection asynchronously. 
         public static void DoBeginAcceptTcpClient(TcpListener listener) {
+
             // Set the event to nonsignaled state.
             tcpClientConnected.Reset();
 
@@ -123,16 +118,19 @@ namespace Server {
 
         // Process the client connection. 
         public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
+            del_console.Invoke("New connection request...");
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
 
-            // End the operation and display the received data on  
-            // the console.
-            TcpClient client = listener.EndAcceptTcpClient(ar);
-
+            // MY CODE
+            ServerClient newClient = new ServerClient(listener.EndAcceptTcpClient(ar));
+            //clientlist.Add(new ServerClient(listener.AcceptTcpClient()));
+            
             // Process the connection here. (Add the client to a 
-            // server table, read data, etc.)
-            Console.WriteLine("Client connected completed");
+            clientlist.Add(newClient);
+            //MessageBox.Show("HEY");
+            del_list.Invoke(null);
+            del_console.Invoke("Done adding new client");
 
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
@@ -142,7 +140,7 @@ namespace Server {
         public void ShutdownServer() {
             if (pServerRunning) {
                 clientlist.ShutdownClients();
-                listener.Stop();
+                tcpListener.Stop();
                 pServerRunning = false;
                 console_obj.log("Closing!...Connections Terminated... Server shutting down");
             }
