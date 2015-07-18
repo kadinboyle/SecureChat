@@ -30,8 +30,8 @@
         {
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.addressText = new System.Windows.Forms.TextBox();
-            this.portText = new System.Windows.Forms.TextBox();
+            this.txtAddress = new System.Windows.Forms.TextBox();
+            this.txtPort = new System.Windows.Forms.TextBox();
             this.btnHost = new System.Windows.Forms.Button();
             this.txtConsole = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
@@ -59,19 +59,19 @@
             this.label2.TabIndex = 1;
             this.label2.Text = "Port";
             // 
-            // addressText
+            // txtAddress
             // 
-            this.addressText.Location = new System.Drawing.Point(106, 26);
-            this.addressText.Name = "addressText";
-            this.addressText.Size = new System.Drawing.Size(168, 20);
-            this.addressText.TabIndex = 2;
+            this.txtAddress.Location = new System.Drawing.Point(106, 26);
+            this.txtAddress.Name = "txtAddress";
+            this.txtAddress.Size = new System.Drawing.Size(168, 20);
+            this.txtAddress.TabIndex = 2;
             // 
-            // portText
+            // txtPort
             // 
-            this.portText.Location = new System.Drawing.Point(106, 56);
-            this.portText.Name = "portText";
-            this.portText.Size = new System.Drawing.Size(168, 20);
-            this.portText.TabIndex = 3;
+            this.txtPort.Location = new System.Drawing.Point(106, 56);
+            this.txtPort.Name = "txtPort";
+            this.txtPort.Size = new System.Drawing.Size(168, 20);
+            this.txtPort.TabIndex = 3;
             // 
             // btnHost
             // 
@@ -151,8 +151,8 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.txtConsole);
             this.Controls.Add(this.btnHost);
-            this.Controls.Add(this.portText);
-            this.Controls.Add(this.addressText);
+            this.Controls.Add(this.txtPort);
+            this.Controls.Add(this.txtAddress);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -168,8 +168,8 @@
 
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox addressText;
-        private System.Windows.Forms.TextBox portText;
+        private System.Windows.Forms.TextBox txtAddress;
+        private System.Windows.Forms.TextBox txtPort;
         private System.Windows.Forms.Button btnHost;
         private System.Windows.Forms.TextBox txtConsole;
         private System.Windows.Forms.Label label3;

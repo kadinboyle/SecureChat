@@ -23,6 +23,10 @@ namespace ClientProgram {
 
         }
 
+        public bool CanWrite() {
+            return clientStream.CanWrite;
+        }
+
 
         public Client(TcpClient client) {
             tcpClient = client;

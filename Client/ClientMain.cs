@@ -23,15 +23,16 @@ namespace ClientProgram {
         public ClientMain() {
             InitializeComponent();
             console = new ConsoleLogger(txtConsole);
-            SetupEventHandlers(); 
+            SetupEventHandlers();
         }
 
         //Override the FormClosing so we can notify the server that we are disconnecting
         protected override void OnFormClosing(FormClosingEventArgs e) {
             base.OnFormClosing(e);
-            // Code
-            clientSelf.send("-exit");
-        } 
+            if (clientSelf != null) {
+                clientSelf.send("-exit");
+            }
+        }
 
         //============ Background Thread Worker Methods ============**/
 
@@ -59,7 +60,7 @@ namespace ClientProgram {
                             console_delegate.Invoke(msg_received);
                             break;
                     }
-                    
+
                 }
             }
         }
@@ -144,7 +145,7 @@ namespace ClientProgram {
             txtInput.Text = "";
         }
 
-        private void btnStop_Click(object sender, EventArgs e) {        
+        private void btnStop_Click(object sender, EventArgs e) {
             exit = 1;
         }
 
@@ -181,7 +182,7 @@ namespace ClientProgram {
             ActiveForm.AcceptButton = null;
         }
 
-        
+
 
     }
 }
