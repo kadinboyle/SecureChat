@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
@@ -16,17 +17,26 @@ namespace Server {
         private String clientPort;
         private String clientIdStr;
         private byte[] clientIdBytes;
+        public StringBuilder sb;
+        public byte[] buffer = new byte[65000];
 
         public ServerClient() {
 
         }
-
 
         public ServerClient(TcpClient client) {
             tcpClient = client;
             clientStream = tcpClient.GetStream();
             clientAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
+        }
+
+        public void EmptyBuffer(){
+            Array.Clear(buffer, 0, buffer.Length);
+        }
+
+        public NetworkStream getStream() {
+            return clientStream;
         }
 
         public void setId(string id) {

@@ -55,7 +55,7 @@ namespace Server {
 
             tcpListener = new TcpListener(address, port);
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            tcpListener.Start();
+            tcpListener.Start(20);
             pServerRunning = true;
 
             del_console.Invoke("I am listening for connections on " +
@@ -70,7 +70,7 @@ namespace Server {
                     DoBeginAcceptTcpClient(tcpListener);
                 }
 
-                //if NOT pending new connection, check all clients for input
+                /**if NOT pending new connection, check all clients for input
                 foreach (var client in clientlist.getDict().Values.ToList()) {
                     if (client.hasMessage()) {
                         del_console.Invoke(client.ClientDetails() + "Wants to send a message!");
@@ -85,7 +85,7 @@ namespace Server {
                             SendToAll(msgReceived, client);
                         }
                     }
-                }//End check all clients loop
+                }//End check all clients loop**/
 
             }//End while
 
@@ -103,15 +103,10 @@ namespace Server {
             // Set the event to nonsignaled state.
             tcpClientConnected.Reset();
 
-            // Start to listen for connections from a client.
-            //Console.WriteLine("Waiting for a connection...");
-
             // Accept the connection.  
-            // BeginAcceptSocket() creates the accepted socket.
             listener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), listener);
 
-            // Wait until a connection is made and processed before  
-            // continuing.
+            // Wait until a connection is made and processed before continuing
             tcpClientConnected.WaitOne();
         }
 
@@ -121,23 +116,44 @@ namespace Server {
             del_console.Invoke("New connection request...");
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
-
-            // MY CODE
-            ServerClient newClient = new ServerClient(listener.EndAcceptTcpClient(ar));
-            //clientlist.Add(new ServerClient(listener.AcceptTcpClient()));
+            ServerClient client = new ServerClient(listener.EndAcceptTcpClient(ar));
+            clientlist.Add(client);
             
             // Process the connection here. (Add the client to a 
-            clientlist.Add(newClient);
-            //MessageBox.Show("HEY");
             del_list.Invoke(null);
             del_console.Invoke("Done adding new client");
 
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
+
+            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
         }
 
+        public static void OnRead(IAsyncResult ar) {
+
+            try {
+                ServerClient client = (ServerClient)ar.AsyncState;
+
+                int bytesread = client.clientStream.EndRead(ar);
+
+                StringBuilder myCompleteMessage = new StringBuilder();
+
+                myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+
+                ProcessMessage(myCompleteMessage.ToString());
+                client.EmptyBuffer();
+
+                //Might need a signal for client disconnected so dont async read? 
+                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+            } catch (Exception e) {
+                MessageBox.Show(e.ToString());
+            }
+
+        }
+
+
         //Remove and terminate all client connections and streams, then stop the listener object
-        public void ShutdownServer() {
+        private void ShutdownServer() {
             if (pServerRunning) {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
@@ -169,8 +185,8 @@ namespace Server {
 
         //=============== COMMUNICATION AND PROCESSING ===============**/
 
-        private void ProcessMessage(string msg) {
-
+        private static void ProcessMessage(string msg) {
+            //MessageBox.Show("MSG: " + msg);
         }
 
         private void sendToClient(ServerClient client, string msg) {
@@ -285,10 +301,11 @@ namespace Server {
 
     } //End ServerMain Class
 
-    public static class Constants {
+    public static class Commands {
+        public static string TERMINATE_CONN = "-exit";
+    }
 
-        public static byte[] DISCONNECT_MSGB = Encoding.ASCII.GetBytes("-exit");
-        public static string DISCONNECT_MSG = "-exit";
+    public static class Constants {
 
         //Server paramaters
         public const int NAME_SIZE = 40;
