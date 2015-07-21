@@ -18,7 +18,7 @@ namespace ClientProgram {
         private ConsoleLogger console;
         public int exit = 0;
         public delegate void ObjectDelegate(object obj);
-        public ObjectDelegate console_delegate;
+        public ObjectDelegate del_console;
 
         public ClientMain() {
             InitializeComponent();
@@ -57,7 +57,7 @@ namespace ClientProgram {
                         case "placeholder":
                             break;
                         default:
-                            console_delegate.Invoke(msg_received);
+                            del_console.Invoke(msg_received);
                             break;
                     }
 
@@ -75,11 +75,10 @@ namespace ClientProgram {
         }
 
         //Delegate for cross thread access to the TextBox that displays chat
-        private void updateTextBox(object obj) {
+        private void UpdateTextBox(object obj) {
 
             if (InvokeRequired) { // Check if we need to switch threads to call on txt area.
-                ObjectDelegate method = new ObjectDelegate(updateTextBox);
-                Invoke(method, obj);
+                Invoke(del_console, obj);
                 return;
             }
             console.log((string)obj);
@@ -97,7 +96,7 @@ namespace ClientProgram {
 
 
         //============ Form Checking ============**/
-        public int getPortInteger() {
+        public int GetPortInteger() {
             try {
                 int port = Int32.Parse(txtPort.Text);
                 return port;
@@ -107,7 +106,7 @@ namespace ClientProgram {
             }
         }
 
-        public string getIpAddress() {
+        public string GetIpAddress() {
             if ((txtAddress.Text).Length < 1) {
                 MessageBox.Show("You must enter an Ip Address!");
                 return "null";
@@ -122,15 +121,15 @@ namespace ClientProgram {
         private void connectButton_Click(object sender, EventArgs e) {
 
             //Check that the details the user entered are valid
-            String addr = getIpAddress();
-            int port = getPortInteger();
+            String addr = GetIpAddress();
+            int port = GetPortInteger();
             if (addr.Equals("null") || port.Equals(-1)) return;
             clientSelf = new Client(new TcpClient(addr, port));
 
             IPAddress y = clientSelf.RemoteAddress();
             MessageBox.Show("Connected to " + y + " on port: ");
 
-            console_delegate = new ObjectDelegate(updateTextBox);
+            del_console = new ObjectDelegate(UpdateTextBox);
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
             bgWorker = new BackgroundWorker();

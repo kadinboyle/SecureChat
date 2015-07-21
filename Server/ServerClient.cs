@@ -15,9 +15,10 @@ namespace Server {
         public NetworkStream clientStream;
         private IPAddress clientAddress;
         private String clientPort;
-        private String clientIdStr;
+        private String id;
         public byte[] buffer = new byte[65000];
         private ManualResetEvent doneReading;
+        private StringBuilder msgReceived;
 
         public ManualResetEvent DoneReading() {
             return doneReading;
@@ -47,6 +48,7 @@ namespace Server {
             clientStream = tcpClient.GetStream();
             clientAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
+            msgReceived = new StringBuilder();
         }
 
         public void EmptyBuffer(){
@@ -57,16 +59,17 @@ namespace Server {
             return clientStream;
         }
 
-        public void SetId(string id) {
-            this.clientIdStr = id;
-        }
-
-        public String ClientIdStr() {
-            return this.clientIdStr;
+        public string ID {
+            get { 
+                return this.id;
+            }
+            set {
+                this.id = value;
+            }
         }
 
         public String ClientDetails() {
-            return String.Format("Client [{0}]: Address: {1}:{2}", clientIdStr, clientAddress, clientPort);
+            return String.Format("Client [{0}]: Address: {1}:{2}", id, clientAddress, clientPort);
         }
 
         public void Close() {
@@ -82,45 +85,43 @@ namespace Server {
          * OVERLOADED
          * @param msgToSend The message to send in string format
          * 
-         * @return 0 if no data to send passed to buffer
-         * @return -1 if stream unavailable to write to
-         * @return -2 if stream no longer exists
-         * @return 1 if OK and data written
          **/
-        public int Send(String msgToSend) {
+        public bool Send(String msgToSend) {
             //DEBUG
             Debug.WriteLine("Sending message");
             if (clientStream.CanWrite) {
                 Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
                 try{
                     clientStream.Write(sendBytes, 0, sendBytes.Length);
-                    return 1;
+                    return true;
                 }catch(ObjectDisposedException){
-                    return -2;
+                    throw;
                 }catch(ArgumentNullException){
-                    return 0;
+                    throw;
                 }
             }
-            return -1;
+            return false;
         }
 
         public string Receive() {
 
             byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
-            StringBuilder messageReceived = new StringBuilder();
+            
             int numberOfBytesRead = 0;
 
             // Incoming message may be larger than the buffer size. 
             while (clientStream.DataAvailable) {
                 numberOfBytesRead = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
+                msgReceived.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
 
             }
 
             // Print out the received message to the console.
             //Debug.WriteLine("You received the following message : " + myCompleteMessage);
 
-            return messageReceived.ToString();
+            string received = msgReceived.ToString();
+            msgReceived.Clear();
+            return received;
         }
 
         public bool HasMessage() {

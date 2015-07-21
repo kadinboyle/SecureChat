@@ -92,8 +92,8 @@ namespace Server {
             //STRIP COMMAND
             switch (cmd) {
                 case Commands.TERMINATE_CONN:
-                    del_console.Invoke(sender.ClientIdStr() + " wants to leave the chat...");
-                    clientlist.Remove(sender);
+                    del_console.Invoke(sender.ID + " wants to leave the chat...");
+                    clientlist.Remove(sender.ID);
                     del_list.Invoke(null);
                     break;
                 case Commands.SAY:
@@ -224,12 +224,23 @@ namespace Server {
 
         private static void SendToAll(string msg, ServerClient sender) {
             //console.Invoke(Utils.bytesToString(msg));
-            string msgs = sender.ClientIdStr() + ": " + msg;
+            string msgs = sender.ID + ": " + msg;
             //This might not work... 
             //perhaps use dictRef.Values OR clientlist.getDict() ???
             foreach (var client in clientlist.getDict().Values) {
-                client.Send(msgs);
+                try {
+                    client.Send(msgs);
+                }catch(ObjectDisposedException o){ // Stream is closed
+                    MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
+
+                }catch(ArgumentNullException a){ //buffer invalid
+                    MessageBox.Show(a.ToString());
+                };
             }
+        }
+
+        private bool RemoveClient(ServerClient client) {
+            if(clientlist.Remove(client.ID))
         }
 
         //================ CROSS THREAD DELEGATES ================**/
@@ -290,8 +301,8 @@ namespace Server {
         private void btnRemoveClient_Click(object sender, EventArgs e) {
             if (dictRef.IsEmpty) return;
             try {
-                clientlist.Remove(((ServerClient)(listBoxClients.SelectedValue)).ClientIdStr());
-                del_list.Invoke("msg");
+                clientlist.Remove(((ServerClient)(listBoxClients.SelectedValue)).ID);
+                del_list.Invoke(null);
             } catch (Exception exc) {
                 MessageBox.Show("Exception" + exc.Message);
             }

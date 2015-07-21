@@ -22,8 +22,8 @@ namespace Server {
         }
 
         public void Add(ServerClient newClient) {
-            newClient.SetId("C" + idCount);
-            clients.GetOrAdd(newClient.ClientIdStr(), newClient);
+            newClient.ID = "C" + idCount;
+            clients.GetOrAdd(newClient.ID, newClient);
             idCount++;
             numClients++;
         }
@@ -44,7 +44,7 @@ namespace Server {
         public bool Remove(ServerClient clientToRemove) {
             //var item = clients.First(kvp => kvp.Value == clientToRemove);
             ServerClient removed;
-            if (clients.TryRemove(clientToRemove.ClientIdStr(), out removed)) {
+            if (clients.TryRemove(clientToRemove.ID, out removed)) {
                 removed.Close();
                 numClients--;
                 return true;
@@ -66,8 +66,14 @@ namespace Server {
             return found;
         }
 
-        public int getNoClients() {
-            return numClients;
+
+        public int NumberClients {
+            get {
+                return this.numClients;
+            }
+            set {
+                this.numClients = value;
+            }
         }
 
 
