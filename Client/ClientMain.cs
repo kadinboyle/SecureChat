@@ -87,9 +87,11 @@ namespace ClientProgram {
 
         //Shutdown and Cleanup
         private void Shutdown() {
-            clientSelf.send("-exit");
-            clientSelf.Close();
-            console.log("Connection Terminated...");
+            if (clientSelf != null) {
+                clientSelf.send("-exit");
+                clientSelf.Close();
+                console.log("Connection Terminated...");
+            }
             //pServerRunning = false;
         }
 
@@ -139,10 +141,34 @@ namespace ClientProgram {
             bgWorker.RunWorkerAsync();
         }
 
+        private void DecryptMessage(string msg) {
+
+        }
+
+        private void ProcessMessage(string msg) {
+
+            //ENCRYPTION HERE...
+            //switch()
+            try {
+                if (!clientSelf.send(msg))
+                    MessageBox.Show("Error sending text!");
+            } catch (ObjectDisposedException exc) {
+                MessageBox.Show(exc.ToString());
+            } catch (ArgumentNullException exc) {
+                MessageBox.Show(exc.ToString());
+            }
+
+        }
+
         private void btnSend_Click(object sender, EventArgs e) {
-            int success = clientSelf.send(txtInput.Text);
-            if (success != 1) MessageBox.Show("Error sending text!");
+            if (CountWords(txtInput.Text.Trim()) < 1) {
+                MessageBox.Show("NOT ENOUGH");
+                return;
+            }
+                
+            ProcessMessage("-say " + txtInput.Text.Trim());
             txtInput.Text = "";
+            
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
@@ -180,6 +206,22 @@ namespace ClientProgram {
 
         private void serverParams_Leave(object sender, EventArgs e) {
             ActiveForm.AcceptButton = null;
+        }
+
+        public static int CountWords(string s) {
+            int c = 0;
+            for (int i = 1; i < s.Length; i++) {
+                if (char.IsWhiteSpace(s[i - 1]) == true) {
+                    if (char.IsLetterOrDigit(s[i]) == true ||
+                        char.IsPunctuation(s[i])) {
+                        c++;
+                    }
+                }
+            }
+            if (s.Length > 2) {
+                c++;
+            }
+            return c;
         }
 
 

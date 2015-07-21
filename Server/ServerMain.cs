@@ -69,27 +69,40 @@ namespace Server {
                     del_console.Invoke("New connection request...");
                     DoBeginAcceptTcpClient(tcpListener);
                 }
-
-                /**if NOT pending new connection, check all clients for input
-                foreach (var client in clientlist.getDict().Values.ToList()) {
-                    if (client.hasMessage()) {
-                        del_console.Invoke(client.ClientDetails() + "Wants to send a message!");
-                        string msgReceived = client.receive();
-                        if (msgReceived.Equals(Constants.DISCONNECT_MSG)) {
-                            del_console.Invoke(client.ClientIdStr() + " wants to leave the chat...");
-                            clientlist.Remove(client);
-                            del_list.Invoke(null);
-                            break;
-                        }
-                        else {
-                            SendToAll(msgReceived, client);
-                        }
-                    }
-                }//End check all clients loop**/
-
             }//End while
 
             ShutdownServer();
+        }
+
+        private static void ProcessMessage(ServerClient sender, string message) {
+            int nowords = Utils.CountWords(message);
+            string cmd, value;
+            string[] msgarray;
+            MessageBox.Show(nowords + " Words");
+            //Check a command at least has arrived else
+            if (nowords > 1) {
+                msgarray = message.Split(null);
+                cmd = msgarray[0];
+                value = msgarray[1];
+            }
+            else cmd = message;
+
+            //MessageBox.Show(cmdmsg[0] + " <-- First");
+            //MessageBox.Show(cmdmsg[1] + " <-- Second");
+            //STRIP COMMAND
+            switch (cmd) {
+                case Commands.TERMINATE_CONN:
+                    del_console.Invoke(sender.ClientIdStr() + " wants to leave the chat...");
+                    clientlist.Remove(sender);
+                    del_list.Invoke(null);
+                    break;
+                case Commands.SAY:
+                    SendToAll(message, sender);
+                    break;
+                case Commands.WHISPER:
+
+                    break;
+            }
         }
 
         // ================ ASYNC CALLBACK METHODS ================ //
@@ -114,36 +127,54 @@ namespace Server {
         // Process the client connection. 
         public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
             del_console.Invoke("New connection request...");
+
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
             ServerClient client = new ServerClient(listener.EndAcceptTcpClient(ar));
             clientlist.Add(client);
-            
-            // Process the connection here. (Add the client to a 
             del_list.Invoke(null);
-            del_console.Invoke("Done adding new client");
+            del_console.Invoke("Added new client");
 
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
 
-            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+            DoBeginRead(client);
+        }
+
+        public static void DoBeginRead(ServerClient client) {
+                ManualResetEvent cmre = new ManualResetEvent(false);
+                client.SetEvent(cmre);
+                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+                client.DoneReading().WaitOne();
         }
 
         public static void OnRead(IAsyncResult ar) {
 
+            //Await and Async
+
+            MessageBox.Show("Read Callback Initiated");
             try {
                 ServerClient client = (ServerClient)ar.AsyncState;
+                if (!client.tcpClient.Connected) return;
 
                 int bytesread = client.clientStream.EndRead(ar);
 
-                StringBuilder myCompleteMessage = new StringBuilder();
+                StringBuilder messageReceived = new StringBuilder();
 
-                myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+                messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
 
-                ProcessMessage(myCompleteMessage.ToString());
+                //Process the message and empty the Clients buffer
+                if (messageReceived.Length > 0)
+                    ProcessMessage(client, messageReceived.ToString());
+                client.DoneReading().Set();
+
+
                 client.EmptyBuffer();
 
                 //Might need a signal for client disconnected so dont async read? 
+                //MessageBox.Show("Client state -> " + client.tcpClient.Connected);
+                //if (!client.tcpClient.Connected) return;
+
                 client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
             } catch (Exception e) {
                 MessageBox.Show(e.ToString());
@@ -179,27 +210,25 @@ namespace Server {
 
         //Resolves an IPv4 Address for this host
         private IPAddress ResolveAddress() {
-            return Array.Find(Dns.GetHostEntry(string.Empty).AddressList, 
+            return Array.Find(Dns.GetHostEntry(string.Empty).AddressList,
                               a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
         }
 
         //=============== COMMUNICATION AND PROCESSING ===============**/
 
-        private static void ProcessMessage(string msg) {
-            //MessageBox.Show("MSG: " + msg);
+
+
+        private static void SendToClient(ServerClient client, string msg) {
+            client.Send(msg);
         }
 
-        private void sendToClient(ServerClient client, string msg) {
-            client.send(msg);
-        }
-
-        private void SendToAll(string msg, ServerClient sender) {
+        private static void SendToAll(string msg, ServerClient sender) {
             //console.Invoke(Utils.bytesToString(msg));
             string msgs = sender.ClientIdStr() + ": " + msg;
             //This might not work... 
             //perhaps use dictRef.Values OR clientlist.getDict() ???
             foreach (var client in clientlist.getDict().Values) {
-                client.send(msgs);
+                client.Send(msgs);
             }
         }
 
@@ -209,8 +238,7 @@ namespace Server {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
             if (InvokeRequired) {
-                ObjectDelegate method = new ObjectDelegate(UpdateListBox);
-                Invoke(method, obj);
+                Invoke(del_list, obj);
                 return;
             }
             listBoxClients.DataSource = new BindingSource(dictRef, null);
@@ -223,8 +251,7 @@ namespace Server {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
             if (InvokeRequired) {
-                ObjectDelegate method = new ObjectDelegate(UpdateTextBox);
-                Invoke(method, obj);
+                Invoke(del_console, obj);
                 return;
             }
             if (obj is byte[]) console_obj.log((byte[])obj);
@@ -296,13 +323,16 @@ namespace Server {
             if (!IPAddress.TryParse(txtAddress.Text, out address)) {
                 MessageBox.Show("Invalid IP Address!");
             }
-            return address;       
+            return address;
         }
 
     } //End ServerMain Class
 
     public static class Commands {
-        public static string TERMINATE_CONN = "-exit";
+        public const string TERMINATE_CONN = "-exit";
+        public const string CHANGE_NAME = "-name";
+        public const string SAY = "-say";
+        public const string WHISPER = "-whisper";
     }
 
     public static class Constants {
@@ -322,6 +352,23 @@ namespace Server {
     }
 
     public static class Utils {
+
+        public static int CountWords(string s) {
+            int c = 0;
+            for (int i = 1; i < s.Length; i++) {
+                if (char.IsWhiteSpace(s[i - 1]) == true) {
+                    if (char.IsLetterOrDigit(s[i]) == true ||
+                        char.IsPunctuation(s[i])) {
+                        c++;
+                    }
+                }
+            }
+            if (s.Length > 2) {
+                c++;
+            }
+            return c;
+        }
+
         public static string bytesToString(byte[] bytes) {
             return Encoding.UTF8.GetString(bytes);
         }

@@ -22,7 +22,7 @@ namespace Server {
         }
 
         public void Add(ServerClient newClient) {
-            newClient.setId("C" + idCount);
+            newClient.SetId("C" + idCount);
             clients.GetOrAdd(newClient.ClientIdStr(), newClient);
             idCount++;
             numClients++;
