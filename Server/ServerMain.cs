@@ -12,6 +12,7 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Server {
 
@@ -30,6 +31,7 @@ namespace Server {
         private static ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
         private int exit = 0;
+        private static StringBuilder strbuilder;
 
 
         public delegate void ObjectDelegate(object obj);
@@ -45,11 +47,13 @@ namespace Server {
             dictRef = clientlist.getDict();
             txtAddress.Text = ResolveAddress().ToString();
             txtPort.Text = "13000";
+            SetupEventHandlers();
+            strbuilder = new StringBuilder();
         }
 
 
-        /**============ MAIN SERVER LOOP ============
-          *===== Called by Background Worker ======**/
+        //==================== MAIN SERVER LOOP ===================//
+        //=========================================================//
         public void RunMain(IPAddress address, int port) {
             pServerRunning = true;
 
@@ -60,7 +64,7 @@ namespace Server {
 
             del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
-                                               "on port number " + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
+                                               ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
 
             while (exit == 0) {
 
@@ -74,18 +78,31 @@ namespace Server {
             ShutdownServer();
         }
 
-        private static void ProcessMessage(ServerClient sender, string message) {
-            int nowords = Utils.CountWords(message);
-            string cmd, value;
-            string[] msgarray;
+        private static void ProcessMessage(ServerClient sender, string msg_recv) {
+            //TODO: THIS ALL NEEDS RETHOUGHT, We shouldnt frame each message too difficult.
+            string cmd;
+            string message = "";
+
+            string[] msgarray = msg_recv.Split();
+
+            int nowords = msgarray.Length;
             MessageBox.Show(nowords + " Words");
+
             //Check a command at least has arrived else
-            if (nowords > 1) {
-                msgarray = message.Split(null);
-                cmd = msgarray[0];
-                value = msgarray[1];
+            switch(nowords){
+                case 1:
+                    cmd = msg_recv;
+                    break;
+                case 2:         //Generic Say
+                case 3:
+                    break;
             }
-            else cmd = message;
+            if (nowords > 1) {
+                msgarray = msg_recv.Split();
+                cmd = msgarray[0];
+                message = msgarray[1];
+            }
+            else cmd = msg_recv;
 
             //MessageBox.Show(cmdmsg[0] + " <-- First");
             //MessageBox.Show(cmdmsg[1] + " <-- Second");
@@ -100,12 +117,60 @@ namespace Server {
                     SendToAll(message, sender);
                     break;
                 case Commands.WHISPER:
-
+                    if (nowords > 2) {
+                    }
+                    
                     break;
             }
         }
 
-        // ================ ASYNC CALLBACK METHODS ================ //
+        //============= COMMUNICATION AND PROCESSING ==============//
+        //=========================================================//
+
+        //Sends a message only to the specified client
+        private static void SendToClient(ServerClient client, string msg) {
+            client.Send(msg);
+        }
+
+        //Send a message to all clients on the server
+        private static void SendToAll(string msg, ServerClient sender) {
+            foreach (var client in clientlist.ValuesD()) {
+                try {
+                    client.Send(sender.ID + ": " + msg);
+                } catch (ObjectDisposedException o) { // Stream is closed
+                    MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
+                    RemoveClient(client.ID);
+                } catch (ArgumentNullException a) { //buffer invalid
+                    MessageBox.Show(a.ToString());
+                };
+            }
+        }
+
+
+        // This method handles removing a client from the server
+        // Removes it from the list AND initiates the clients 
+        // shutdown methods whilst updating the listbox of clients
+        private static bool RemoveClient(string ID) {
+            if (clientlist.Remove(ID)) {
+                del_list.Invoke(null);
+                return true;
+            }
+            return false;
+        }
+
+        //Remove and terminate all client connections and streams, then stop the listener object
+        private void ShutdownServer() {
+            if (pServerRunning) {
+                clientlist.ShutdownClients();
+                tcpListener.Stop();
+                pServerRunning = false;
+                del_console.Invoke("Closing!...Connections Terminated... Server shutting down");
+            }
+            del_console.Invoke("Error Occured...");
+        }
+
+        // ================ ASYNC CALLBACK METHODS ================//
+        //=========================================================//
 
         // Thread signal. 
         public static ManualResetEvent tcpClientConnected = new ManualResetEvent(false);
@@ -138,6 +203,7 @@ namespace Server {
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
 
+            //Initiate callback method for reading from client
             DoBeginRead(client);
         }
 
@@ -171,10 +237,6 @@ namespace Server {
 
                 client.EmptyBuffer();
 
-                //Might need a signal for client disconnected so dont async read? 
-                //MessageBox.Show("Client state -> " + client.tcpClient.Connected);
-                //if (!client.tcpClient.Connected) return;
-
                 client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
             } catch (Exception e) {
                 MessageBox.Show(e.ToString());
@@ -183,18 +245,8 @@ namespace Server {
         }
 
 
-        //Remove and terminate all client connections and streams, then stop the listener object
-        private void ShutdownServer() {
-            if (pServerRunning) {
-                clientlist.ShutdownClients();
-                tcpListener.Stop();
-                pServerRunning = false;
-                console_obj.log("Closing!...Connections Terminated... Server shutting down");
-            }
-            console_obj.log("Error Occured...");
-        }
-
-        //============ BACKGROUND WORKER/THREADS ============**/
+        //=============== BACKGROUND WORKER/THREADS ===============//
+        //=========================================================//
 
         void bgWorker_serverLoop(object sender, DoWorkEventArgs e) {
             List<object> args = e.Argument as List<object>;
@@ -205,7 +257,7 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-            ShutdownServer();
+            //ShutdownServer();
         }
 
         //Resolves an IPv4 Address for this host
@@ -214,37 +266,10 @@ namespace Server {
                               a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
         }
 
-        //=============== COMMUNICATION AND PROCESSING ===============**/
+        
 
-
-
-        private static void SendToClient(ServerClient client, string msg) {
-            client.Send(msg);
-        }
-
-        private static void SendToAll(string msg, ServerClient sender) {
-            //console.Invoke(Utils.bytesToString(msg));
-            string msgs = sender.ID + ": " + msg;
-            //This might not work... 
-            //perhaps use dictRef.Values OR clientlist.getDict() ???
-            foreach (var client in clientlist.getDict().Values) {
-                try {
-                    client.Send(msgs);
-                }catch(ObjectDisposedException o){ // Stream is closed
-                    MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
-
-                }catch(ArgumentNullException a){ //buffer invalid
-                    MessageBox.Show(a.ToString());
-                };
-            }
-        }
-
-        private bool RemoveClient(ServerClient client) {
-            if(clientlist.Remove(client.ID))
-        }
-
-        //================ CROSS THREAD DELEGATES ================**/
-
+        //================ CROSS THREAD DELEGATES =================//
+        //=========================================================//
         private void UpdateListBox(object obj) {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
@@ -269,8 +294,8 @@ namespace Server {
             else console_obj.log((string)obj);
         }
 
-        //=================== EVENT HANDLERS ===================**/
-
+        //=================== EVENT HANDLERS ======================//
+        //=========================================================//
         private void hostBtn_Click(object sender, EventArgs e) {
             IPAddress ip = GetIpAddress();
             int port = GetPortInteger();
@@ -301,20 +326,36 @@ namespace Server {
         private void btnRemoveClient_Click(object sender, EventArgs e) {
             if (dictRef.IsEmpty) return;
             try {
-                clientlist.Remove(((ServerClient)(listBoxClients.SelectedValue)).ID);
-                del_list.Invoke(null);
-            } catch (Exception exc) {
-                MessageBox.Show("Exception" + exc.Message);
+                if (!RemoveClient(((ServerClient)(listBoxClients.SelectedValue)).ID)) {
+                    MessageBox.Show("Failed to remove Client!");
+                }
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message);
             }
         }
 
 
-        static int enable_reuse_address(Socket socket) {
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            return 0;
+ 
+        public void SetupEventHandlers() {
+            EventHandler host_enter = new EventHandler(serverParams_Enter);
+            EventHandler host_leave = new EventHandler(serverParams_Leave);
+            this.txtAddress.Enter += host_enter;
+            this.txtAddress.Leave += host_leave;
+            this.txtPort.Enter += host_enter;
+            this.txtPort.Leave += host_leave;
         }
 
-        //============ FORM CHECKING ============**/
+        private void serverParams_Enter(object sender, EventArgs e) {
+            ActiveForm.AcceptButton = btnHost;
+        }
+         
+        private void serverParams_Leave(object sender, EventArgs e) {
+            ActiveForm.AcceptButton = null;
+        }
+
+        //===================== FORM CHECKING =====================//
+        //=========================================================//
+
         public int GetPortInteger() {
             try {
                 int port = Int32.Parse(txtPort.Text);
@@ -336,6 +377,13 @@ namespace Server {
             }
             return address;
         }
+
+
+        private static int enable_reuse_address(Socket socket) {
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+            return 0;
+        }
+
 
     } //End ServerMain Class
 
@@ -365,39 +413,7 @@ namespace Server {
     public static class Utils {
 
         public static int CountWords(string s) {
-            int c = 0;
-            for (int i = 1; i < s.Length; i++) {
-                if (char.IsWhiteSpace(s[i - 1]) == true) {
-                    if (char.IsLetterOrDigit(s[i]) == true ||
-                        char.IsPunctuation(s[i])) {
-                        c++;
-                    }
-                }
-            }
-            if (s.Length > 2) {
-                c++;
-            }
-            return c;
-        }
-
-        public static string bytesToString(byte[] bytes) {
-            return Encoding.UTF8.GetString(bytes);
-        }
-
-        public static byte[] stringToBytes(string str) {
-            return Encoding.UTF8.GetBytes(str);
-        }
-
-        public static bool Compare(byte[] b1, byte[] b2) {
-            MessageBox.Show("Comparison being made...");
-            return Encoding.ASCII.GetString(b1) == Encoding.ASCII.GetString(b2);
-        }
-
-        public static byte[] Combine(byte[] first, byte[] second) {
-            byte[] ret = new byte[first.Length + second.Length];
-            Buffer.BlockCopy(first, 0, ret, 0, first.Length);
-            Buffer.BlockCopy(second, 0, ret, first.Length, second.Length);
-            return ret;
+            return s.Split().Length;
         }
 
     }

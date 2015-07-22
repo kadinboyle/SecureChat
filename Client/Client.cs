@@ -15,8 +15,10 @@ namespace ClientProgram {
         public static TcpClient tcpClient;
         public NetworkStream clientStream;
         private IPAddress clientAddress;
+        private IPAddress localAddress;
         private String clientPort;
-        private String clientIdStr;
+        private String localPort;
+        private String id;
         private StringBuilder msgReceived;
 
         public Client() {
@@ -28,23 +30,42 @@ namespace ClientProgram {
             clientStream = tcpClient.GetStream();
             clientAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
+            localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
+            localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
             msgReceived = new StringBuilder();
+        }
+
+        public String ClientDetails() {
+            return String.Format("Client [{0}]: Address: {1}:{2}", id, clientAddress, clientPort);
         }
 
         public bool CanWrite() {
             return clientStream.CanWrite;
         }
 
-        public void setId(string id) {
-            this.clientIdStr = id;
+        public String ID {
+            get { return this.id; }
+            set { this.id = value; }
         }
 
-        public String ClientIdStr() {
-            return this.clientIdStr;
+        public String LocalPort {
+            get { return this.localPort; }
+            set { this.localPort = value; }
         }
 
-        public String ClientDetails() {
-            return String.Format("Client [{0}]: Address: {1}:{2}", clientIdStr, clientAddress, clientPort);
+        public IPAddress LocalAddress {
+            get { return this.localAddress; }
+            set { this.localAddress = value; }
+        }
+
+        public String RemotePort {
+            get { return this.clientPort; }
+            set { clientPort = value; }
+        }
+
+        public IPAddress RemoteAddress {
+            get { return this.clientAddress; }
+            set { this.clientAddress = value; }
         }
 
         public void Close() {
@@ -62,7 +83,7 @@ namespace ClientProgram {
          **/
 
         //TODO: UPDATE THIS TO THROW EXCEPTIONS.
-        public bool send(String msgToSend) {
+        public bool Send(String msgToSend) {
             if (clientStream.CanWrite) {
                 Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
                 try {
@@ -77,7 +98,7 @@ namespace ClientProgram {
             return false;
         }
 
-        public string receive() { 
+        public string Receive() { 
 
             byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
             //StringBuilder myCompleteMessage = new StringBuilder();
@@ -94,24 +115,8 @@ namespace ClientProgram {
             return received;
         }
 
-        public bool hasMessage() {
+        public bool HasMessage() {
             return clientStream.DataAvailable;
-        }
-
-        public IPAddress LocalAddress() {
-            return this.clientAddress;
-        }
-
-        public String LocalPort() {
-            return this.clientPort;
-        }
-
-        public IPAddress RemoteAddress() {
-            return (((IPEndPoint)tcpClient.Client.RemoteEndPoint)).Address;
-        }
-
-        public String RemotePort() {
-            return (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
         }
 
     }

@@ -30,11 +30,42 @@ namespace ClientProgram {
         protected override void OnFormClosing(FormClosingEventArgs e) {
             base.OnFormClosing(e);
             if (clientSelf != null) {
-                clientSelf.send("-exit");
+                clientSelf.Send("-exit");
             }
         }
 
-        //============ Background Thread Worker Methods ============**/
+
+        private void DecryptMessage(string msg) {
+
+        }
+
+        private void ProcessMessage(string msg) {
+
+            //ENCRYPTION HERE...
+            //switch()
+            try {
+                if (!clientSelf.Send(msg))
+                    MessageBox.Show("Error sending text!");
+            } catch (ObjectDisposedException exc) {
+                MessageBox.Show(exc.ToString());
+            } catch (ArgumentNullException exc) {
+                MessageBox.Show(exc.ToString());
+            }
+
+        }
+
+        //Shutdown and Cleanup
+        private void Shutdown() {
+            if (clientSelf != null) {
+                clientSelf.Send("-exit");
+                clientSelf.Close();
+                console.log("Connection Terminated...");
+            }
+            //pServerRunning = false;
+        }
+
+        //=============== BACKGROUND WORKER/THREADS ===============//
+        //=========================================================//
 
         //Main Server loop this one does all the work
         void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
@@ -43,12 +74,12 @@ namespace ClientProgram {
             while (exit == 0) {
 
                 //Poll until we have a message
-                if (clientSelf.hasMessage()) {
+                if (clientSelf.HasMessage()) {
 
                     //Receive message then call it Invoke on the delegate
                     //to print it. (because txt box we are printing on is
                     //on the GUI's thread
-                    string msg_received = clientSelf.receive();
+                    string msg_received = clientSelf.Receive();
                     switch (msg_received) {
                         case "-exit":
                             console.log("Server is closing connection...");
@@ -74,7 +105,8 @@ namespace ClientProgram {
             }
         }
 
-        //Delegate for cross thread access to the TextBox that displays chat
+        //================ CROSS THREAD DELEGATES =================//
+        //=========================================================//
         private void UpdateTextBox(object obj) {
 
             if (InvokeRequired) { // Check if we need to switch threads to call on txt area.
@@ -84,38 +116,9 @@ namespace ClientProgram {
             console.log((string)obj);
         }
 
-        //Shutdown and Cleanup
-        private void Shutdown() {
-            if (clientSelf != null) {
-                clientSelf.send("-exit");
-                clientSelf.Close();
-                console.log("Connection Terminated...");
-            }
-            //pServerRunning = false;
-        }
-
-
-        //============ Form Checking ============**/
-        public int GetPortInteger() {
-            try {
-                int port = Int32.Parse(txtPort.Text);
-                return port;
-            } catch (Exception) {
-                MessageBox.Show("You must enter an integer between X and Y!", "Error!");
-                return -1;
-            }
-        }
-
-        public string GetIpAddress() {
-            if ((txtAddress.Text).Length < 1) {
-                MessageBox.Show("You must enter an Ip Address!");
-                return "null";
-            }
-            return (string)txtAddress.Text;
-        }
-
-
-        //============ Button and Key Event Handlers ============**/
+        
+        //=================== EVENT HANDLERS ======================//
+        //=========================================================//
 
         /****** Buttons ******/
         private void connectButton_Click(object sender, EventArgs e) {
@@ -126,7 +129,7 @@ namespace ClientProgram {
             if (addr.Equals("null") || port.Equals(-1)) return;
             clientSelf = new Client(new TcpClient(addr, port));
 
-            IPAddress y = clientSelf.RemoteAddress();
+            IPAddress y = clientSelf.RemoteAddress;
             MessageBox.Show("Connected to " + y + " on port: ");
 
             del_console = new ObjectDelegate(UpdateTextBox);
@@ -140,34 +143,14 @@ namespace ClientProgram {
             bgWorker.RunWorkerAsync();
         }
 
-        private void DecryptMessage(string msg) {
-
-        }
-
-        private void ProcessMessage(string msg) {
-
-            //ENCRYPTION HERE...
-            //switch()
-            try {
-                if (!clientSelf.send(msg))
-                    MessageBox.Show("Error sending text!");
-            } catch (ObjectDisposedException exc) {
-                MessageBox.Show(exc.ToString());
-            } catch (ArgumentNullException exc) {
-                MessageBox.Show(exc.ToString());
-            }
-
-        }
+       
 
         private void btnSend_Click(object sender, EventArgs e) {
             if (CountWords(txtInput.Text.Trim()) < 1) {
-                MessageBox.Show("NOT ENOUGH");
                 return;
-            }
-                
+            }              
             ProcessMessage("-say " + txtInput.Text.Trim());
-            txtInput.Text = "";
-            
+            txtInput.Text = "";      
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
@@ -208,22 +191,28 @@ namespace ClientProgram {
         }
 
         public static int CountWords(string s) {
-            int c = 0;
-            for (int i = 1; i < s.Length; i++) {
-                if (char.IsWhiteSpace(s[i - 1]) == true) {
-                    if (char.IsLetterOrDigit(s[i]) == true ||
-                        char.IsPunctuation(s[i])) {
-                        c++;
-                    }
-                }
-            }
-            if (s.Length > 2) {
-                c++;
-            }
-            return c;
+            return s.Split().Length;
         }
 
+        //===================== FORM CHECKING =====================//
+        //=========================================================//
+        public int GetPortInteger() {
+            try {
+                int port = Int32.Parse(txtPort.Text);
+                return port;
+            } catch (Exception) {
+                MessageBox.Show("You must enter an integer between X and Y!", "Error!");
+                return -1;
+            }
+        }
 
+        public string GetIpAddress() {
+            if ((txtAddress.Text).Length < 1) {
+                MessageBox.Show("You must enter an Ip Address!");
+                return "null";
+            }
+            return (string)txtAddress.Text;
+        }
 
     }
 }
