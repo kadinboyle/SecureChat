@@ -95,14 +95,14 @@ namespace Server {
         private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
             ServerMessage smsg = msgReceived.DeserializeFromBytes();
 
-            String cmd = smsg.mainCommand;
-            String cmd2 = "";
+            String mainCommand = smsg.mainCommand;
+            String secondCommand = "";
             int noCmds = smsg.noCommands;
             String payload = smsg.payload;
             if (noCmds == 2)
-                cmd2 = smsg.secondCommand;
+                secondCommand = smsg.secondCommand;
 
-            switch (cmd) {
+            switch (mainCommand) {
                 case Commands.TERMINATE_CONN:
                     del_console.Invoke(sender.ID + " wants to leave the chat...");
                     clientlist.Remove(sender.ID);
@@ -113,7 +113,7 @@ namespace Server {
                     break;
                 case Commands.WHISPER:
                     if(noCmds == 2)
-                    SendToClient(clientlist.FindClientById(cmd2), payload);                    
+                        SendToClient(clientlist.FindClientById(secondCommand), payload);                    
                     break;
             }
         }

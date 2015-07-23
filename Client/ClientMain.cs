@@ -46,7 +46,7 @@ namespace ClientProgram {
             String secondCommand = "";
             if(commands.Length > 1)
                 secondCommand = commands[1];
-            MessageBox.Show("LENGTH: " + commands.Length + " ||| " + secondCommand);
+
             ServerMessage servmsg = null;
             switch (mainCommand) {
                 case Commands.TERMINATE_CONN:
@@ -60,7 +60,6 @@ namespace ClientProgram {
                     break;
                 case Commands.WHISPER:
                     servmsg = new ServerMessage("-whisper", secondCommand, 2, msg);
-                    MessageBox.Show(servmsg.secondCommand);
                     break;
                 default:
                     return;
