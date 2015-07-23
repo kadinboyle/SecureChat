@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace ClientProgram {
 
@@ -68,26 +69,37 @@ namespace ClientProgram {
             set { this.clientAddress = value; }
         }
 
+        //Notify Server we are closing nad release resources
         public void Close() {
+            Send(new ServerMessage("-exit", 1, "MG").SerializeToBytes());
             clientStream.Close();
             tcpClient.Close();
+            clientStream.Dispose();
         }
 
-        /**
-         * Sending data (in bytes) to client via its NetworkStream
-         * 
-         * OVERLOADED
-         * @param msgToSend The message to send in string format
-         * 
-         * @return true If message written successfully
-         **/
-
-        //TODO: UPDATE THIS TO THROW EXCEPTIONS.
+        public bool Send(byte[] messageToSend) {
+            //byte[] messageToSend = messageToSend.SerializeToBytes();
+            if (clientStream.CanWrite) {
+                //Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
+                try {
+                    clientStream.Write(messageToSend, 0, messageToSend.Length);
+                    return true;
+                } catch (ObjectDisposedException) {
+                    throw;
+                } catch (ArgumentNullException) {
+                    throw;
+                }
+            }
+            return false;
+        }
+        
         public bool Send(String msgToSend) {
             if (clientStream.CanWrite) {
-                Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
+                //Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
                 try {
-                    clientStream.Write(sendBytes, 0, sendBytes.Length);
+                    ServerMessage smsg = new ServerMessage("-say", 1, "WHAT THE FUCK you want biatch");
+                    //MessageBox.Show(smsg.SerializeToString());
+                    //clientStream.Write(sendBytes, 0, sendBytes.Length);
                     return true;
                 } catch (ObjectDisposedException) {
                     throw;
@@ -116,7 +128,9 @@ namespace ClientProgram {
         }
 
         public bool HasMessage() {
-            return clientStream.DataAvailable;
+            if (clientStream != null)
+                return clientStream.DataAvailable;
+            return false;
         }
 
     }

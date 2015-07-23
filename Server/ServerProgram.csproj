@@ -32,6 +32,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="protobuf-net">
+      <HintPath>..\protobuf-net.dll</HintPath>
+    </Reference>
+    <Reference Include="ServerMessage">
+      <HintPath>..\ServerMessage\bin\Debug\ServerMessage.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,6 +59,7 @@
     <Compile Include="ServerMain.Designer.cs">
       <DependentUpon>ServerMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="ServerMessage.cs" />
     <Compile Include="ServerProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">

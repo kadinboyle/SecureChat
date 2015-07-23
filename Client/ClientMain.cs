@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
+using ProtoBuf;
 
 namespace ClientProgram {
     public partial class ClientMain : Form {
@@ -24,14 +26,13 @@ namespace ClientProgram {
             InitializeComponent();
             console = new ConsoleLogger(txtConsole);
             SetupEventHandlers();
+            del_console = new ObjectDelegate(UpdateTextBox);
         }
 
         //Override the FormClosing so we can notify the server that we are disconnecting
         protected override void OnFormClosing(FormClosingEventArgs e) {
             base.OnFormClosing(e);
-            if (clientSelf != null) {
-                clientSelf.Send("-exit");
-            }
+            Shutdown();
         }
 
 
@@ -39,13 +40,37 @@ namespace ClientProgram {
 
         }
 
-        private void ProcessMessage(string msg) {
+        //Parse into ServerMessage format, the serialize to byte[] and send
+        private void ProcessMessage(String[] commands, String msg) {
+            String mainCommand = commands[0];
+            String secondCommand = "";
+            if(commands.Length > 1)
+                secondCommand = commands[1];
+            MessageBox.Show("LENGTH: " + commands.Length + " ||| " + secondCommand);
+            ServerMessage servmsg = null;
+            switch (mainCommand) {
+                case Commands.TERMINATE_CONN:
+                    clientSelf.Close(); //Notifies server we are leaving and releases resources
+                    break;
+                case Commands.SAY:
+                    servmsg = new ServerMessage("-say", 1, msg);
+                    break;
+                case Commands.CHANGE_NAME:
 
-            //ENCRYPTION HERE...
-            //switch()
+                    break;
+                case Commands.WHISPER:
+                    servmsg = new ServerMessage("-whisper", secondCommand, 2, msg);
+                    MessageBox.Show(servmsg.secondCommand);
+                    break;
+                default:
+                    return;
+            }
+
+            byte[] toSend = servmsg.SerializeToBytes();
+            
             try {
-                if (!clientSelf.Send(msg))
-                    MessageBox.Show("Error sending text!");
+                if (!clientSelf.Send(toSend)) { }
+                    //MessageBox.Show("Error sending text!");
             } catch (ObjectDisposedException exc) {
                 MessageBox.Show(exc.ToString());
             } catch (ArgumentNullException exc) {
@@ -57,10 +82,11 @@ namespace ClientProgram {
         //Shutdown and Cleanup
         private void Shutdown() {
             if (clientSelf != null) {
-                clientSelf.Send("-exit");
                 clientSelf.Close();
                 console.log("Connection Terminated...");
+                clientSelf = null;
             }
+            //clientSelf = null; //??
             //pServerRunning = false;
         }
 
@@ -69,7 +95,7 @@ namespace ClientProgram {
 
         //Main Server loop this one does all the work
         void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
-
+            
             //Loop until exit flag becomes 1
             while (exit == 0) {
 
@@ -81,6 +107,7 @@ namespace ClientProgram {
                     //on the GUI's thread
                     string msg_received = clientSelf.Receive();
                     switch (msg_received) {
+                            //TODO: Obviously this is fairly insecure
                         case "-exit":
                             console.log("Server is closing connection...");
                             exit = 1;
@@ -127,12 +154,24 @@ namespace ClientProgram {
             String addr = GetIpAddress();
             int port = GetPortInteger();
             if (addr.Equals("null") || port.Equals(-1)) return;
-            clientSelf = new Client(new TcpClient(addr, port));
 
-            IPAddress y = clientSelf.RemoteAddress;
-            MessageBox.Show("Connected to " + y + " on port: ");
+            try {
+                clientSelf = new Client(new TcpClient(addr, port));
+                //exit = 0;
+            } catch (ArgumentNullException) {
+                MessageBox.Show("Invalid Hostname!");
+                return;
+            } catch (ArgumentOutOfRangeException) {
+                MessageBox.Show("Port is out of range!");
+                return;
+            } catch (SocketException exc) {
+                MessageBox.Show("Error connecting to host: \r\n\r\n" + exc.SocketErrorCode + ": " + exc.Message +
+                    "\r\n\r\nPerhaps the server is not running");
+                return;
+            }
 
-            del_console = new ObjectDelegate(UpdateTextBox);
+            MessageBox.Show("Connected to " + clientSelf.RemoteAddress + " on port: ");
+ 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
             bgWorker = new BackgroundWorker();
@@ -143,15 +182,22 @@ namespace ClientProgram {
             bgWorker.RunWorkerAsync();
         }
 
-       
-
         private void btnSend_Click(object sender, EventArgs e) {
             if (CountWords(txtInput.Text.Trim()) < 1) {
                 return;
             }              
-            ProcessMessage("-say " + txtInput.Text.Trim());
+            ProcessMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
             txtInput.Text = "";      
         }
+
+        private void btnWhisper_Click(object sender, EventArgs e) {
+            if (CountWords(txtWhisper.Text.Trim()) < 1) {
+                return;
+            }
+            ProcessMessage(new String[] { Commands.WHISPER, txtWhisper.Text.Trim() }, "FUCK YOU");
+            txtWhisper.Text = "";
+        }
+
 
         private void btnStop_Click(object sender, EventArgs e) {
             exit = 1;
@@ -201,14 +247,14 @@ namespace ClientProgram {
                 int port = Int32.Parse(txtPort.Text);
                 return port;
             } catch (Exception) {
-                MessageBox.Show("You must enter an integer between X and Y!", "Error!");
+                MessageBox.Show("You must enter an integer between X and Y!", "Error");
                 return -1;
             }
         }
 
         public string GetIpAddress() {
             if ((txtAddress.Text).Length < 1) {
-                MessageBox.Show("You must enter an Ip Address!");
+                MessageBox.Show("You must enter an Ip Address!", "Error");
                 return "null";
             }
             return (string)txtAddress.Text;

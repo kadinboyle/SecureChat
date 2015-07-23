@@ -37,6 +37,8 @@
             this.txtConsole = new System.Windows.Forms.TextBox();
             this.btnSend = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
+            this.btnWhisper = new System.Windows.Forms.Button();
+            this.txtWhisper = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label1
@@ -117,11 +119,30 @@
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
+            // btnWhisper
+            // 
+            this.btnWhisper.Location = new System.Drawing.Point(423, 89);
+            this.btnWhisper.Name = "btnWhisper";
+            this.btnWhisper.Size = new System.Drawing.Size(75, 23);
+            this.btnWhisper.TabIndex = 9;
+            this.btnWhisper.Text = "Whisper";
+            this.btnWhisper.UseVisualStyleBackColor = true;
+            this.btnWhisper.Click += new System.EventHandler(this.btnWhisper_Click);
+            // 
+            // txtWhisper
+            // 
+            this.txtWhisper.Location = new System.Drawing.Point(305, 90);
+            this.txtWhisper.Name = "txtWhisper";
+            this.txtWhisper.Size = new System.Drawing.Size(100, 20);
+            this.txtWhisper.TabIndex = 10;
+            // 
             // ClientMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(539, 262);
+            this.Controls.Add(this.txtWhisper);
+            this.Controls.Add(this.btnWhisper);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnSend);
             this.Controls.Add(this.txtConsole);
@@ -150,6 +171,8 @@
         private System.Windows.Forms.TextBox txtConsole;
         private System.Windows.Forms.Button btnSend;
         private System.Windows.Forms.Button btnStop;
+        private System.Windows.Forms.Button btnWhisper;
+        private System.Windows.Forms.TextBox txtWhisper;
     }
 }
 

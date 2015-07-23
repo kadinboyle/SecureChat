@@ -30,8 +30,10 @@ namespace Server {
             doneReading = mre;
         }
 
+
+
         ~ServerClient() {
-            clientStream.Dispose();
+            //clientStream.Dispose();
         }
 
         public ServerClient() {
@@ -86,10 +88,14 @@ namespace Server {
         }
 
         public void Close() {
-            Send("-exit");
-            clientStream.Close();
-            clientStream.Dispose();
-            tcpClient.Close();
+            if (clientStream != null) {
+                Send("-exit");
+                clientStream.Close();
+                clientStream.Dispose();
+            }
+
+            if (tcpClient != null)
+                tcpClient.Close();
         }
 
         /**
@@ -101,7 +107,7 @@ namespace Server {
          **/
         public bool Send(String msgToSend) {
             if (clientStream.CanWrite) {
-                Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
+                Byte[] sendBytes = Encoding.ASCII.GetBytes(msgToSend);
                 try{
                     clientStream.Write(sendBytes, 0, sendBytes.Length);
                     return true;

@@ -20,6 +20,14 @@ namespace Server {
     public partial class ServerMain : Form {
 
         //TODO: Ensure all access to ConcurrentDictionary is done through clientlist class
+        //TODO: ADD IN USE of """ USING """ statments
+        //TODO: Move commands to shared class ServerMessage
+        public static class Commands {
+            public const string TERMINATE_CONN = "-exit";
+            public const string CHANGE_NAME = "-name";
+            public const string SAY = "-say";
+            public const string WHISPER = "-whisper";
+        }
 
         private static ConsoleLogger console_obj;
         private Boolean pServerRunning;
@@ -51,6 +59,12 @@ namespace Server {
             strbuilder = new StringBuilder();
         }
 
+        //Override the FormClosing so we can notify all clients we are disconnecting...
+        protected override void OnFormClosing(FormClosingEventArgs e) {
+            base.OnFormClosing(e);
+            ShutdownServer();
+        }
+
 
         //==================== MAIN SERVER LOOP ===================//
         //=========================================================//
@@ -78,35 +92,16 @@ namespace Server {
             ShutdownServer();
         }
 
-        private static void ProcessMessage(ServerClient sender, string msg_recv) {
-            //TODO: THIS ALL NEEDS RETHOUGHT, We shouldnt frame each message too difficult.
-            string cmd;
-            string message = "";
+        private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
+            ServerMessage smsg = msgReceived.DeserializeFromBytes();
 
-            string[] msgarray = msg_recv.Split();
+            String cmd = smsg.mainCommand;
+            String cmd2 = "";
+            int noCmds = smsg.noCommands;
+            String payload = smsg.payload;
+            if (noCmds == 2)
+                cmd2 = smsg.secondCommand;
 
-            int nowords = msgarray.Length;
-            MessageBox.Show(nowords + " Words");
-
-            //Check a command at least has arrived else
-            switch(nowords){
-                case 1:
-                    cmd = msg_recv;
-                    break;
-                case 2:         //Generic Say
-                case 3:
-                    break;
-            }
-            if (nowords > 1) {
-                msgarray = msg_recv.Split();
-                cmd = msgarray[0];
-                message = msgarray[1];
-            }
-            else cmd = msg_recv;
-
-            //MessageBox.Show(cmdmsg[0] + " <-- First");
-            //MessageBox.Show(cmdmsg[1] + " <-- Second");
-            //STRIP COMMAND
             switch (cmd) {
                 case Commands.TERMINATE_CONN:
                     del_console.Invoke(sender.ID + " wants to leave the chat...");
@@ -114,12 +109,11 @@ namespace Server {
                     del_list.Invoke(null);
                     break;
                 case Commands.SAY:
-                    SendToAll(message, sender);
+                    SendToAll(payload, sender);
                     break;
                 case Commands.WHISPER:
-                    if (nowords > 2) {
-                    }
-                    
+                    if(noCmds == 2)
+                    SendToClient(clientlist.FindClientById(cmd2), payload);                    
                     break;
             }
         }
@@ -129,7 +123,7 @@ namespace Server {
 
         //Sends a message only to the specified client
         private static void SendToClient(ServerClient client, string msg) {
-            client.Send(msg);
+            client.Send(client.ID +": " + msg);
         }
 
         //Send a message to all clients on the server
@@ -160,6 +154,7 @@ namespace Server {
 
         //Remove and terminate all client connections and streams, then stop the listener object
         private void ShutdownServer() {
+
             if (pServerRunning) {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
@@ -224,20 +219,21 @@ namespace Server {
                 if (!client.tcpClient.Connected) return;
 
                 int bytesread = client.clientStream.EndRead(ar);
-
                 StringBuilder messageReceived = new StringBuilder();
 
                 messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+                byte[] buffer = Encoding.ASCII.GetBytes(messageReceived.ToString());
 
                 //Process the message and empty the Clients buffer
                 if (messageReceived.Length > 0)
-                    ProcessMessage(client, messageReceived.ToString());
+                    ProcessMessage(client, buffer.Take(bytesread).ToArray());
                 client.DoneReading().Set();
 
 
                 client.EmptyBuffer();
-
-                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+                try {
+                    client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+                } catch (Exception) { }
             } catch (Exception e) {
                 MessageBox.Show(e.ToString());
             }
@@ -387,12 +383,7 @@ namespace Server {
 
     } //End ServerMain Class
 
-    public static class Commands {
-        public const string TERMINATE_CONN = "-exit";
-        public const string CHANGE_NAME = "-name";
-        public const string SAY = "-say";
-        public const string WHISPER = "-whisper";
-    }
+    
 
     public static class Constants {
 
