@@ -21,6 +21,7 @@ namespace Server {
         public byte[] buffer = new byte[65000];
         private ManualResetEvent doneReading;
         private StringBuilder strbuilder;
+        private ServerMessage EXIT_MSG = new ServerMessage("-exit", 1, "EXIT");
 
         public ManualResetEvent DoneReading() {
             return doneReading;
@@ -89,9 +90,13 @@ namespace Server {
 
         public void Close() {
             if (clientStream != null) {
-                Send("-exit");
-                clientStream.Close();
-                clientStream.Dispose();
+                try {
+                    Send(EXIT_MSG.SerializeToBytes());
+                    clientStream.Close();
+                    clientStream.Dispose();
+                } catch (Exception e) {
+                    Debug.WriteLine(e.ToString());
+                }
             }
 
             if (tcpClient != null)
@@ -114,6 +119,20 @@ namespace Server {
                 }catch(ObjectDisposedException){
                     throw;
                 }catch(ArgumentNullException){
+                    throw;
+                } 
+            }
+            return false;
+        }
+
+        public bool Send(byte[] msgToSend) {
+            if (clientStream.CanWrite) {
+                try {
+                    clientStream.Write(msgToSend, 0, msgToSend.Length);
+                    return true;
+                } catch (ObjectDisposedException) {
+                    throw;
+                } catch (ArgumentNullException) {
                     throw;
                 }
             }

@@ -20,7 +20,7 @@ namespace ClientProgram {
         private String clientPort;
         private String localPort;
         private String id;
-        private StringBuilder msgReceived;
+        private StringBuilder messageReceived;
 
         public Client() {
 
@@ -33,7 +33,7 @@ namespace ClientProgram {
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
             localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
-            msgReceived = new StringBuilder();
+            messageReceived = new StringBuilder();
         }
 
         public String ClientDetails() {
@@ -110,7 +110,7 @@ namespace ClientProgram {
             return false;
         }
 
-        public string Receive() { 
+        public byte[] Receive() { 
 
             byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
             //StringBuilder myCompleteMessage = new StringBuilder();
@@ -119,12 +119,12 @@ namespace ClientProgram {
             // Incoming message may be larger than the buffer size. 
             while(clientStream.DataAvailable){
                 numberOfBytesRead = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                msgReceived.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
+                //messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
 
             }
-            string received = msgReceived.ToString();
-            msgReceived.Clear();
-            return received;
+            //string received = messageReceived.ToString();
+           // messageReceived.Clear();
+            return readBuffer.Take(numberOfBytesRead).ToArray();
         }
 
         public bool HasMessage() {

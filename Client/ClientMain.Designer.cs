@@ -39,6 +39,8 @@
             this.btnStop = new System.Windows.Forms.Button();
             this.btnWhisper = new System.Windows.Forms.Button();
             this.txtWhisper = new System.Windows.Forms.TextBox();
+            this.listBoxClients = new System.Windows.Forms.ListBox();
+            this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label1
@@ -96,6 +98,7 @@
             this.txtConsole.Location = new System.Drawing.Point(40, 118);
             this.txtConsole.Multiline = true;
             this.txtConsole.Name = "txtConsole";
+            this.txtConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtConsole.Size = new System.Drawing.Size(458, 88);
             this.txtConsole.TabIndex = 6;
             // 
@@ -121,7 +124,7 @@
             // 
             // btnWhisper
             // 
-            this.btnWhisper.Location = new System.Drawing.Point(423, 89);
+            this.btnWhisper.Location = new System.Drawing.Point(564, 209);
             this.btnWhisper.Name = "btnWhisper";
             this.btnWhisper.Size = new System.Drawing.Size(75, 23);
             this.btnWhisper.TabIndex = 9;
@@ -131,16 +134,35 @@
             // 
             // txtWhisper
             // 
-            this.txtWhisper.Location = new System.Drawing.Point(305, 90);
+            this.txtWhisper.Location = new System.Drawing.Point(183, 89);
             this.txtWhisper.Name = "txtWhisper";
             this.txtWhisper.Size = new System.Drawing.Size(100, 20);
             this.txtWhisper.TabIndex = 10;
+            // 
+            // listBoxClients
+            // 
+            this.listBoxClients.FormattingEnabled = true;
+            this.listBoxClients.Location = new System.Drawing.Point(504, 57);
+            this.listBoxClients.Name = "listBoxClients";
+            this.listBoxClients.Size = new System.Drawing.Size(135, 147);
+            this.listBoxClients.TabIndex = 12;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(501, 38);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(41, 13);
+            this.label4.TabIndex = 11;
+            this.label4.Text = "Clients:";
             // 
             // ClientMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(539, 262);
+            this.ClientSize = new System.Drawing.Size(646, 262);
+            this.Controls.Add(this.listBoxClients);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.txtWhisper);
             this.Controls.Add(this.btnWhisper);
             this.Controls.Add(this.btnStop);
@@ -173,6 +195,8 @@
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnWhisper;
         private System.Windows.Forms.TextBox txtWhisper;
+        private System.Windows.Forms.ListBox listBoxClients;
+        private System.Windows.Forms.Label label4;
     }
 }
 

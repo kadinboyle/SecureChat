@@ -39,7 +39,7 @@ namespace Server {
         private static ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
         private int exit = 0;
-        private static StringBuilder strbuilder;
+        private static StringBuilder messageReceived;
 
 
         public delegate void ObjectDelegate(object obj);
@@ -56,7 +56,10 @@ namespace Server {
             txtAddress.Text = ResolveAddress().ToString();
             txtPort.Text = "13000";
             SetupEventHandlers();
-            strbuilder = new StringBuilder();
+            //Set up our delegates for accessing console TextBox and Client ListBox cross thread
+            del_console = new ObjectDelegate(UpdateTextBox);
+            del_list = new ObjectDelegate(UpdateListBox);
+            messageReceived = new StringBuilder();
         }
 
         //Override the FormClosing so we can notify all clients we are disconnecting...
@@ -69,17 +72,16 @@ namespace Server {
         //==================== MAIN SERVER LOOP ===================//
         //=========================================================//
         public void RunMain(IPAddress address, int port) {
-            pServerRunning = true;
 
             tcpListener = new TcpListener(address, port);
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             tcpListener.Start(20);
-            pServerRunning = true;
+            
 
             del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
                                                ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
-
+            pServerRunning = true;
             while (exit == 0) {
 
                 //Check for new connection
@@ -123,19 +125,35 @@ namespace Server {
 
         //Sends a message only to the specified client
         private static void SendToClient(ServerClient client, string msg) {
-            client.Send(client.ID +": " + msg);
+
+            byte[] toSend = new ServerMessage("-say", 1, client.ID +"(Private Message): " + msg).SerializeToBytes();
+            client.Send(toSend);
+            //client.Send(client.ID +"(Private Message): " + msg);
         }
 
-        //Send a message to all clients on the server
+        //Send a message to all clients on the server from a given sender
         private static void SendToAll(string msg, ServerClient sender) {
+            String fullmsg = sender.ID +": " + msg;
+            byte[] toSend = new ServerMessage("-say", 1, fullmsg).SerializeToBytes();
             foreach (var client in clientlist.ValuesD()) {
                 try {
-                    client.Send(sender.ID + ": " + msg);
+                    client.Send(toSend);
                 } catch (ObjectDisposedException o) { // Stream is closed
                     MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
                     RemoveClient(client.ID);
                 } catch (ArgumentNullException a) { //buffer invalid
                     MessageBox.Show(a.ToString());
+                };
+            }
+        }
+
+        private static void SendServerMessageAll(ServerMessage serv_msg) {
+            byte[] msg = serv_msg.SerializeToBytes();
+            foreach (var client in clientlist.ValuesD()) {
+                try {
+                    client.Send(msg);
+                } catch (ArgumentNullException exc) { //buffer invalid
+                    MessageBox.Show(exc.ToString());
                 };
             }
         }
@@ -183,6 +201,16 @@ namespace Server {
             tcpClientConnected.WaitOne();
         }
 
+        private static void AddClient(ServerClient client) {
+            clientlist.Add(client);
+            del_list.Invoke(null);
+            //Send new list to client
+            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
+            //SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
+            //MessageBox.Show(lista.ToString());
+            del_console.Invoke("Added new client");
+        }
+
 
         // Process the client connection. 
         public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
@@ -191,9 +219,7 @@ namespace Server {
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
             ServerClient client = new ServerClient(listener.EndAcceptTcpClient(ar));
-            clientlist.Add(client);
-            del_list.Invoke(null);
-            del_console.Invoke("Added new client");
+            AddClient(client);
 
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
@@ -211,26 +237,24 @@ namespace Server {
 
         public static void OnRead(IAsyncResult ar) {
 
-            //Await and Async
-
-            MessageBox.Show("Read Callback Initiated");
+            //Await and Async??
             try {
                 ServerClient client = (ServerClient)ar.AsyncState;
                 if (!client.tcpClient.Connected) return;
 
                 int bytesread = client.clientStream.EndRead(ar);
-                StringBuilder messageReceived = new StringBuilder();
+                //StringBuilder messageReceived = new StringBuilder();
 
                 messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
-                byte[] buffer = Encoding.ASCII.GetBytes(messageReceived.ToString());
+                //byte[] buffer = Encoding.ASCII.GetBytes(messageReceived.ToString());
 
-                //Process the message and empty the Clients buffer
+                //Process the message and empty the Clients buffer (only take the amount read)
                 if (messageReceived.Length > 0)
-                    ProcessMessage(client, buffer.Take(bytesread).ToArray());
-                client.DoneReading().Set();
-
-
+                    ProcessMessage(client, Encoding.ASCII.GetBytes(messageReceived.ToString()));
+                messageReceived.Clear();
                 client.EmptyBuffer();
+                
+                client.DoneReading().Set();   
                 try {
                     client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
                 } catch (Exception) { }
@@ -299,9 +323,7 @@ namespace Server {
             //btnHost.Enabled = false;
             //btnStop.Enabled = true;
 
-            //Set up our delegates for accessing console TextBox and Client ListBox cross thread
-            del_console = new ObjectDelegate(UpdateTextBox);
-            del_list = new ObjectDelegate(UpdateListBox);
+            
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;

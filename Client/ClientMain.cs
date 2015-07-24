@@ -19,8 +19,10 @@ namespace ClientProgram {
         private IPAddress serverAddress;
         private ConsoleLogger console;
         public int exit = 0;
+        private List<String> clientlist;
         public delegate void ObjectDelegate(object obj);
         public ObjectDelegate del_console;
+        public ObjectDelegate del_clientlist;
 
         public ClientMain() {
             InitializeComponent();
@@ -101,20 +103,32 @@ namespace ClientProgram {
                 //Poll until we have a message
                 if (clientSelf.HasMessage()) {
 
+                    
+
                     //Receive message then call it Invoke on the delegate
                     //to print it. (because txt box we are printing on is
                     //on the GUI's thread
-                    string msg_received = clientSelf.Receive();
-                    switch (msg_received) {
+                    byte[] msgReceived = clientSelf.Receive();
+                    ServerMessage smsg = msgReceived.DeserializeFromBytes();
+                    String mainCommand = smsg.mainCommand;
+                    String secondCommand = "";
+                    int noCmds = smsg.noCommands;
+                    String payload = smsg.payload;
+                    if (noCmds == 2)
+                        secondCommand = smsg.secondCommand;
+
+
+                    switch (mainCommand) {
                             //TODO: Obviously this is fairly insecure
                         case "-exit":
                             console.log("Server is closing connection...");
                             exit = 1;
                             break;
-                        case "placeholder":
+                        case "-newlist":
+                            MessageBox.Show("NEW LIST UPDATE!!");
                             break;
                         default:
-                            del_console.Invoke(msg_received);
+                            del_console.Invoke(payload);
                             break;
                     }
 
@@ -133,6 +147,19 @@ namespace ClientProgram {
 
         //================ CROSS THREAD DELEGATES =================//
         //=========================================================//
+        private void UpdateListBox(object obj) {
+            //Check if control was created on a different thread.
+            //If so, we need to call an Invoke method.
+            if (InvokeRequired) {
+                Invoke(del_clientlist, obj);
+                return;
+            }
+            
+            listBoxClients.DataSource = new BindingSource(clientlist, null);
+            listBoxClients.DisplayMember = "Key";
+            listBoxClients.ValueMember = "Value";
+        }
+
         private void UpdateTextBox(object obj) {
 
             if (InvokeRequired) { // Check if we need to switch threads to call on txt area.
