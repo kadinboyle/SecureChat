@@ -29,6 +29,7 @@ namespace ClientProgram {
             console = new ConsoleLogger(txtConsole);
             SetupEventHandlers();
             del_console = new ObjectDelegate(UpdateTextBox);
+            del_clientlist = new ObjectDelegate(UpdateListBox);
         }
 
         //Override the FormClosing so we can notify the server that we are disconnecting
@@ -94,6 +95,8 @@ namespace ClientProgram {
         //=============== BACKGROUND WORKER/THREADS ===============//
         //=========================================================//
 
+        //TODO: MAKE PROCESSMESGSAGE_IN AND OUT
+
         //Main Server loop this one does all the work
         void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
             
@@ -116,7 +119,7 @@ namespace ClientProgram {
                     String payload = smsg.payload;
                     if (noCmds == 2)
                         secondCommand = smsg.secondCommand;
-
+                    //TODO: Simplify the above into own method
 
                     switch (mainCommand) {
                             //TODO: Obviously this is fairly insecure
@@ -125,7 +128,8 @@ namespace ClientProgram {
                             exit = 1;
                             break;
                         case "-newlist":
-                            MessageBox.Show("NEW LIST UPDATE!!");
+                            //We have received an update for our client list
+                            del_clientlist.Invoke(payload);
                             break;
                         default:
                             del_console.Invoke(payload);
@@ -154,10 +158,12 @@ namespace ClientProgram {
                 Invoke(del_clientlist, obj);
                 return;
             }
-            
+            String x = (String)obj;
+            clientlist = x.Split(',').ToList();
+
             listBoxClients.DataSource = new BindingSource(clientlist, null);
-            listBoxClients.DisplayMember = "Key";
-            listBoxClients.ValueMember = "Value";
+            //listBoxClients.DisplayMember = "Key";
+            //listBoxClients.ValueMember = "Value";
         }
 
         private void UpdateTextBox(object obj) {
@@ -217,10 +223,12 @@ namespace ClientProgram {
         }
 
         private void btnWhisper_Click(object sender, EventArgs e) {
-            if (CountWords(txtWhisper.Text.Trim()) < 1) {
-                return;
-            }
-            ProcessMessage(new String[] { Commands.WHISPER, txtWhisper.Text.Trim() }, "FUCK YOU");
+            
+            String selectedClient = (String)listBoxClients.SelectedValue;
+            //if (CountWords(selectedClient) < 1) {
+               // return;
+           // }
+            ProcessMessage(new String[] { Commands.WHISPER, selectedClient }, "FUCK YOU");
             txtWhisper.Text = "";
         }
 

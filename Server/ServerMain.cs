@@ -41,7 +41,6 @@ namespace Server {
         private int exit = 0;
         private static StringBuilder messageReceived;
 
-
         public delegate void ObjectDelegate(object obj);
         public static ObjectDelegate del_console;
         public static ObjectDelegate del_list;
@@ -165,6 +164,7 @@ namespace Server {
         private static bool RemoveClient(string ID) {
             if (clientlist.Remove(ID)) {
                 del_list.Invoke(null);
+                UpdateClientsList();
                 return true;
             }
             return false;
@@ -201,11 +201,17 @@ namespace Server {
             tcpClientConnected.WaitOne();
         }
 
+        private static void UpdateClientsList() {
+            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
+            SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
+        }
+
         private static void AddClient(ServerClient client) {
             clientlist.Add(client);
             del_list.Invoke(null);
             //Send new list to client
-            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
+            UpdateClientsList();
+            //String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
             //SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
             //MessageBox.Show(lista.ToString());
             del_console.Invoke("Added new client");
