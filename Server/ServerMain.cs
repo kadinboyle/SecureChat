@@ -104,10 +104,10 @@ namespace Server {
                 secondCommand = smsg.secondCommand;
 
             switch (mainCommand) {
-                case Commands.TERMINATE_CONN:
-                    del_console.Invoke(sender.ID + " wants to leave the chat...");
+                case Commands.TERMINATE_CONN: 
                     clientlist.Remove(sender.ID);
-                    del_list.Invoke(null);
+                    UpdateClientsList();
+                    del_console.Invoke(sender.ID + " leaves the chat...");
                     break;
                 case Commands.SAY:
                     SendToAll(payload, sender);
@@ -163,7 +163,6 @@ namespace Server {
         // shutdown methods whilst updating the listbox of clients
         private static bool RemoveClient(string ID) {
             if (clientlist.Remove(ID)) {
-                del_list.Invoke(null);
                 UpdateClientsList();
                 return true;
             }
@@ -202,13 +201,14 @@ namespace Server {
         }
 
         private static void UpdateClientsList() {
+            del_list.Invoke(null);
             String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
             SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
         }
 
         private static void AddClient(ServerClient client) {
             clientlist.Add(client);
-            del_list.Invoke(null);
+            
             //Send new list to client
             UpdateClientsList();
             //String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
