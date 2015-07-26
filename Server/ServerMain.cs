@@ -83,12 +83,13 @@ namespace Server {
             pServerRunning = true;
             while (exit == 0) {
 
-                //Check for new connection
+                //Check for new connection and then begin async reading operations
+                //from client
                 if (tcpListener.Pending()) {
                     del_console.Invoke("New connection request...");
                     DoBeginAcceptTcpClient(tcpListener);
                 }
-            }//End while
+            }
 
             ShutdownServer();
         }
@@ -192,10 +193,8 @@ namespace Server {
 
             // Set the event to nonsignaled state.
             tcpClientConnected.Reset();
-
             // Accept the connection.  
             listener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), listener);
-
             // Wait until a connection is made and processed before continuing
             tcpClientConnected.WaitOne();
         }
@@ -220,20 +219,21 @@ namespace Server {
 
         // Process the client connection. 
         public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
-            del_console.Invoke("New connection request...");
 
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
             ServerClient client = new ServerClient(listener.EndAcceptTcpClient(ar));
             AddClient(client);
 
+
+            //TODO: Have a think about the logic and thread flow here.
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
-
             //Initiate callback method for reading from client
             DoBeginRead(client);
         }
 
+        //TODO: Think about the use of ManualResetEvent here
         public static void DoBeginRead(ServerClient client) {
                 ManualResetEvent cmre = new ManualResetEvent(false);
                 client.SetEvent(cmre);
@@ -252,7 +252,6 @@ namespace Server {
                 //StringBuilder messageReceived = new StringBuilder();
 
                 messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
-                //byte[] buffer = Encoding.ASCII.GetBytes(messageReceived.ToString());
 
                 //Process the message and empty the Clients buffer (only take the amount read)
                 if (messageReceived.Length > 0)
@@ -303,6 +302,9 @@ namespace Server {
                 Invoke(del_list, obj);
                 return;
             }
+            //if (clientlist.NumberClients < 1) {
+                
+            //}
             listBoxClients.DataSource = new BindingSource(dictRef, null);
             listBoxClients.DisplayMember = "Key";
             listBoxClients.ValueMember = "Value";

@@ -125,10 +125,14 @@ namespace Server {
             return false;
         }
 
+
+
         public bool Send(byte[] msgToSend) {
             if (clientStream.CanWrite) {
                 try {
-                    clientStream.Write(msgToSend, 0, msgToSend.Length);
+                    //clientStream.Write(msgToSend, 0, msgToSend.Length);
+                    clientStream.WriteAsync(msgToSend, 0, msgToSend.Length);
+                    Debug.WriteLine("Done writing " + ID);
                     return true;
                 } catch (ObjectDisposedException) {
                     throw;

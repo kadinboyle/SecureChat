@@ -162,8 +162,6 @@ namespace ClientProgram {
             clientlist = x.Split(',').ToList();
 
             listBoxClients.DataSource = new BindingSource(clientlist, null);
-            //listBoxClients.DisplayMember = "Key";
-            //listBoxClients.ValueMember = "Value";
         }
 
         private void UpdateTextBox(object obj) {
@@ -201,8 +199,7 @@ namespace ClientProgram {
                     "\r\n\r\nPerhaps the server is not running");
                 return;
             }
-
-            MessageBox.Show("Connected to " + clientSelf.RemoteAddress + " on port: ");
+            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
  
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -215,7 +212,8 @@ namespace ClientProgram {
         }
 
         private void btnSend_Click(object sender, EventArgs e) {
-            if (CountWords(txtInput.Text.Trim()) < 1) {
+            String input = txtInput.Text.Trim();
+            if (CountWords(input) < 1 || input.Length < 1) {
                 return;
             }              
             ProcessMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
