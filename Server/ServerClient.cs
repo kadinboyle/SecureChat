@@ -21,7 +21,12 @@ namespace Server {
         public byte[] buffer = new byte[65000];
         private ManualResetEvent doneReading;
         private StringBuilder strbuilder;
+
         private ServerMessage EXIT_MSG = new ServerMessage("-exit", 1, "EXIT");
+
+        public StringBuilder messageReceived {
+            get { return strbuilder; }
+        }
 
         public ManualResetEvent DoneReading() {
             return doneReading;
@@ -30,8 +35,6 @@ namespace Server {
         public void SetEvent(ManualResetEvent mre) {
             doneReading = mre;
         }
-
-
 
         ~ServerClient() {
             //clientStream.Dispose();
@@ -51,8 +54,9 @@ namespace Server {
             strbuilder = new StringBuilder();
         }
 
-        public void EmptyBuffer(){
+        public void EmptyBuffers(){
             Array.Clear(buffer, 0, buffer.Length);
+            strbuilder.Clear();
         }
 
         public NetworkStream GetStream() {
@@ -125,14 +129,11 @@ namespace Server {
             return false;
         }
 
-
-
         public bool Send(byte[] msgToSend) {
             if (clientStream.CanWrite) {
                 try {
                     //clientStream.Write(msgToSend, 0, msgToSend.Length);
                     clientStream.WriteAsync(msgToSend, 0, msgToSend.Length);
-                    Debug.WriteLine("Done writing " + ID);
                     return true;
                 } catch (ObjectDisposedException) {
                     throw;
@@ -141,28 +142,6 @@ namespace Server {
                 }
             }
             return false;
-        }
-
-        //Not used anymore
-        public string Receive() {
-
-            byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
-            
-            int numberOfBytesRead = 0;
-
-            // Incoming message may be larger than the buffer size. 
-            while (clientStream.DataAvailable) {
-                numberOfBytesRead = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                strbuilder.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
-
-            }
-
-            // Print out the received message to the console.
-            //Debug.WriteLine("You received the following message : " + myCompleteMessage);
-
-            string received = strbuilder.ToString();
-            strbuilder.Clear();
-            return received;
         }
 
         public bool HasMessage() {

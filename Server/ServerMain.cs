@@ -35,11 +35,11 @@ namespace Server {
         private IPEndPoint pServerEndpoint;
         private String pServerPort;
         private TcpListener tcpListener;
-        private static ClientList clientlist = new ClientList();
+        private static volatile ClientList clientlist = new ClientList();
         private static ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
         private int exit = 0;
-        private static StringBuilder messageReceived;
+        //private static StringBuilder messageReceived;
 
         public delegate void ObjectDelegate(object obj);
         public static ObjectDelegate del_console;
@@ -58,7 +58,7 @@ namespace Server {
             //Set up our delegates for accessing console TextBox and Client ListBox cross thread
             del_console = new ObjectDelegate(UpdateTextBox);
             del_list = new ObjectDelegate(UpdateListBox);
-            messageReceived = new StringBuilder();
+           // messageReceived = new StringBuilder();
         }
 
         //Override the FormClosing so we can notify all clients we are disconnecting...
@@ -85,10 +85,11 @@ namespace Server {
 
                 //Check for new connection and then begin async reading operations
                 //from client
-                if (tcpListener.Pending()) {
-                    del_console.Invoke("New connection request...");
+                //if (tcpListener.Pending()) {
+                   // del_console.Invoke("New connection request...");
                     DoBeginAcceptTcpClient(tcpListener);
-                }
+                    MessageBox.Show("ACCEPTED");
+               // }
             }
 
             ShutdownServer();
@@ -178,6 +179,7 @@ namespace Server {
                 tcpListener.Stop();
                 pServerRunning = false;
                 del_console.Invoke("Closing!...Connections Terminated... Server shutting down");
+                btnHost.Enabled = true;
             }
             del_console.Invoke("Error Occured...");
         }
@@ -230,15 +232,16 @@ namespace Server {
             // Signal the calling thread to continue.
             tcpClientConnected.Set();
             //Initiate callback method for reading from client
-            DoBeginRead(client);
+            //DoBeginRead(client);
+            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
         }
 
         //TODO: Think about the use of ManualResetEvent here
         public static void DoBeginRead(ServerClient client) {
-                ManualResetEvent cmre = new ManualResetEvent(false);
-                client.SetEvent(cmre);
-                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
-                client.DoneReading().WaitOne();
+                //ManualResetEvent cmre = new ManualResetEvent(false);
+                //client.SetEvent(cmre);
+                //client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+               // client.DoneReading().WaitOne();
         }
 
         public static void OnRead(IAsyncResult ar) {
@@ -249,17 +252,16 @@ namespace Server {
                 if (!client.tcpClient.Connected) return;
 
                 int bytesread = client.clientStream.EndRead(ar);
-                //StringBuilder messageReceived = new StringBuilder();
 
-                messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+                client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
 
                 //Process the message and empty the Clients buffer (only take the amount read)
-                if (messageReceived.Length > 0)
-                    ProcessMessage(client, Encoding.ASCII.GetBytes(messageReceived.ToString()));
-                messageReceived.Clear();
-                client.EmptyBuffer();
+                if (client.messageReceived.Length > 0)
+                    ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
+     
+                client.EmptyBuffers();
                 
-                client.DoneReading().Set();   
+                //client.DoneReading().Set();   
                 try {
                     client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
                 } catch (Exception) { }
@@ -328,7 +330,7 @@ namespace Server {
             IPAddress ip = GetIpAddress();
             int port = GetPortInteger();
             if (port == -1 || ip == null) return;
-            //btnHost.Enabled = false;
+            btnHost.Enabled = false;
             //btnStop.Enabled = true;
 
             
