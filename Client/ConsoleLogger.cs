@@ -15,6 +15,7 @@ namespace ClientProgram{
             this.consoleBox.ScrollBars = ScrollBars.Vertical;
         }
 
+        //TODO: Fix this: Cross thread exception? da fuq. FIXED I THINK.
         public void log(String text) {
             consoleBox.AppendText(text);
             consoleBox.AppendText(Environment.NewLine); //Why on earth does this need to be on its own line?

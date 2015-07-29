@@ -85,7 +85,7 @@ namespace ClientProgram {
         private void Shutdown() {
             if (clientSelf != null) {
                 clientSelf.Close();
-                console.log("Connection Terminated...");
+                del_console.Invoke("Connection Terminated!");
                 clientSelf = null;
             }
             //clientSelf = null; //??
@@ -124,7 +124,8 @@ namespace ClientProgram {
                     switch (mainCommand) {
                             //TODO: Obviously this is fairly insecure
                         case "-exit":
-                            console.log("Server is closing connection...");
+                            del_console.Invoke("Server is closing connection...");
+                            UpdateListBox("");
                             exit = 1;
                             break;
                         case "-newlist":

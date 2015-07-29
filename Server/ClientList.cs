@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 namespace Server {
     public class ClientList {
 
+        private bool NOTIFY_CLIENT = true;
+        private bool DONT_NOTIFY = false;
+
         private ConcurrentDictionary<String, ServerClient> clientlist;
         private int idCount = 1000;
         private int numClients = 0;
@@ -35,32 +38,21 @@ namespace Server {
 
         //Remove by id NOT TO BE USED, AS IT CURRENTLY DOESNT SHUTDOWN THE CLIENT
         //Overloaded
-        public bool Remove(String id) {
+        public bool Remove(String id, bool notifyClient) {
             ServerClient removed;
             if (clientlist.TryRemove(id, out removed)) {
-                removed.Close();
+                removed.Close(notifyClient);
                 numClients--;
                 return true;
             }
             return false;
         }
 
-        //remove by client
-        public bool Remove(ServerClient clientToRemove) {
-            //var item = clients.First(kvp => kvp.Value == clientToRemove);
-            ServerClient removed;
-            if (clientlist.TryRemove(clientToRemove.ID, out removed)) {
-                removed.Close();
-                numClients--;
-                return true;
-            }
-            return false;
-        }
 
         public void ShutdownClients() {
             //Close all clients then remove them from the list
             foreach (var client in clientlist.Values) {
-                client.Close();
+                client.Close(NOTIFY_CLIENT);
             }
         }
 

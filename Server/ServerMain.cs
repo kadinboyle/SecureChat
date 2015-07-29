@@ -30,16 +30,15 @@ namespace Server {
         }
 
         private static ConsoleLogger console_obj;
-        private Boolean pServerRunning;
+        private static volatile Boolean pServerRunning;
         private IPAddress pServerAddress;
         private IPEndPoint pServerEndpoint;
         private String pServerPort;
         private TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
-        private static ConcurrentDictionary<String, ServerClient> dictRef;
+        private static volatile ConcurrentDictionary<String, ServerClient> dictRef;
         private int numClients = 0;
         private int exit = 0;
-        //private static StringBuilder messageReceived;
 
         public delegate void ObjectDelegate(object obj);
         public static ObjectDelegate del_console;
@@ -58,13 +57,12 @@ namespace Server {
             //Set up our delegates for accessing console TextBox and Client ListBox cross thread
             del_console = new ObjectDelegate(UpdateTextBox);
             del_list = new ObjectDelegate(UpdateListBox);
-           // messageReceived = new StringBuilder();
         }
 
         //Override the FormClosing so we can notify all clients we are disconnecting...
         protected override void OnFormClosing(FormClosingEventArgs e) {
             base.OnFormClosing(e);
-            ShutdownServer();
+            if (pServerRunning) ShutdownServer();
         }
 
 
@@ -75,24 +73,17 @@ namespace Server {
             tcpListener = new TcpListener(address, port);
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             tcpListener.Start(20);
-            
+
 
             del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
                                                ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
             pServerRunning = true;
             while (exit == 0) {
-
                 //Check for new connection and then begin async reading operations
-                //from client
-                //if (tcpListener.Pending()) {
-                   // del_console.Invoke("New connection request...");
-                    DoBeginAcceptTcpClient(tcpListener);
-                    MessageBox.Show("ACCEPTED");
-               // }
-            }
+                DoBeginAcceptTcpClient(tcpListener);
 
-            ShutdownServer();
+            }
         }
 
         private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
@@ -106,8 +97,8 @@ namespace Server {
                 secondCommand = smsg.secondCommand;
 
             switch (mainCommand) {
-                case Commands.TERMINATE_CONN: 
-                    clientlist.Remove(sender.ID);
+                case Commands.TERMINATE_CONN:
+                    clientlist.Remove(sender.ID, true);
                     UpdateClientsList();
                     del_console.Invoke(sender.ID + " leaves the chat...");
                     break;
@@ -115,8 +106,8 @@ namespace Server {
                     SendToAll(payload, sender);
                     break;
                 case Commands.WHISPER:
-                    if(noCmds == 2)
-                        SendToClient(clientlist.FindClientById(secondCommand), payload);                    
+                    if (noCmds == 2)
+                        SendToClient(clientlist.FindClientById(secondCommand), payload);
                     break;
             }
         }
@@ -127,21 +118,21 @@ namespace Server {
         //Sends a message only to the specified client
         private static void SendToClient(ServerClient client, string msg) {
 
-            byte[] toSend = new ServerMessage("-say", 1, client.ID +"(Private Message): " + msg).SerializeToBytes();
+            byte[] toSend = new ServerMessage("-say", 1, client.ID + "(Private Message): " + msg).SerializeToBytes();
             client.Send(toSend);
             //client.Send(client.ID +"(Private Message): " + msg);
         }
 
         //Send a message to all clients on the server from a given sender
         private static void SendToAll(string msg, ServerClient sender) {
-            String fullmsg = sender.ID +": " + msg;
+            String fullmsg = sender.ID + ": " + msg;
             byte[] toSend = new ServerMessage("-say", 1, fullmsg).SerializeToBytes();
             foreach (var client in clientlist.ValuesD()) {
                 try {
                     client.Send(toSend);
                 } catch (ObjectDisposedException o) { // Stream is closed
                     MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
-                    RemoveClient(client.ID);
+                    RemoveClient(client.ID, true);
                 } catch (ArgumentNullException a) { //buffer invalid
                     MessageBox.Show(a.ToString());
                 };
@@ -159,21 +150,33 @@ namespace Server {
             }
         }
 
+        //Add the client then update our list and the clients
+        private static void AddClient(ServerClient client) {
+            clientlist.Add(client);
+            UpdateClientsList();
+            del_console.Invoke("Added new client");
+        }
+
 
         // This method handles removing a client from the server
         // Removes it from the list AND initiates the clients 
         // shutdown methods whilst updating the listbox of clients
-        private static bool RemoveClient(string ID) {
-            if (clientlist.Remove(ID)) {
+        private static bool RemoveClient(string ID, bool notifyClient) {
+            if (clientlist.Remove(ID, notifyClient)) {
                 UpdateClientsList();
                 return true;
             }
             return false;
         }
 
+        private static void UpdateClientsList() {
+            del_list.Invoke(null);
+            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
+            SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
+        }
+
         //Remove and terminate all client connections and streams, then stop the listener object
         private void ShutdownServer() {
-
             if (pServerRunning) {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
@@ -181,7 +184,8 @@ namespace Server {
                 del_console.Invoke("Closing!...Connections Terminated... Server shutting down");
                 btnHost.Enabled = true;
             }
-            del_console.Invoke("Error Occured...");
+            else
+                del_console.Invoke("Error Occured...");
         }
 
         // ================ ASYNC CALLBACK METHODS ================//
@@ -192,7 +196,7 @@ namespace Server {
 
         // Accept one client connection asynchronously. 
         public static void DoBeginAcceptTcpClient(TcpListener listener) {
-
+            if (!pServerRunning) return;
             // Set the event to nonsignaled state.
             tcpClientConnected.Reset();
             // Accept the connection.  
@@ -201,72 +205,83 @@ namespace Server {
             tcpClientConnected.WaitOne();
         }
 
-        private static void UpdateClientsList() {
-            del_list.Invoke(null);
-            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
-            SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
-        }
-
-        private static void AddClient(ServerClient client) {
-            clientlist.Add(client);
-            
-            //Send new list to client
-            UpdateClientsList();
-            //String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
-            //SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
-            //MessageBox.Show(lista.ToString());
-            del_console.Invoke("Added new client");
-        }
-
-
         // Process the client connection. 
         public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
 
+            ServerClient client;
             // Get the listener that handles the client request.
             TcpListener listener = (TcpListener)ar.AsyncState;
-            ServerClient client = new ServerClient(listener.EndAcceptTcpClient(ar));
+            try {
+                client = new ServerClient(listener.EndAcceptTcpClient(ar));
+
+            } catch (Exception) {
+                Debug.WriteLine("Object Disposed. Cancelling");
+                tcpClientConnected.Set();
+                return;
+            }
+            tcpClientConnected.Set();
             AddClient(client);
+
 
 
             //TODO: Have a think about the logic and thread flow here.
             // Signal the calling thread to continue.
-            tcpClientConnected.Set();
+            //tcpClientConnected.Set();
+
+
             //Initiate callback method for reading from client
             //DoBeginRead(client);
+            //BackgroundWorker bgReadWorker = new BackgroundWorker();
+            //bgReadWorker.DoWork += new DoWorkEventHandler(bgReadWorker_DoRead);
+            //bgReadWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgReadWorker_RunCompleted);
+
+            // Launch background thread to loop for server response to input
+            //bgReadWorker.RunWorkerAsync(client);
             client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
         }
 
-        //TODO: Think about the use of ManualResetEvent here
-        public static void DoBeginRead(ServerClient client) {
-                //ManualResetEvent cmre = new ManualResetEvent(false);
-                //client.SetEvent(cmre);
-                //client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
-               // client.DoneReading().WaitOne();
+
+        private static void bgReadWorker_DoRead(object sender, DoWorkEventArgs e) {
+            ServerClient client = e.Argument as ServerClient;
+            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+        }
+
+        private static void bgReadWorker_RunCompleted(object sender, RunWorkerCompletedEventArgs e) {
+            MessageBox.Show("Finished");
         }
 
         public static void OnRead(IAsyncResult ar) {
-
-            //Await and Async??
+            //Set ServerClient object from async state and store number of bytes read,
+            //whilst reading into buffer
+            ServerClient client = (ServerClient)ar.AsyncState;
+            int bytesread = 0;
             try {
-                ServerClient client = (ServerClient)ar.AsyncState;
-                if (!client.tcpClient.Connected) return;
+                if (client.IsConnected)
+                    bytesread = client.clientStream.EndRead(ar);
+            } catch (ObjectDisposedException) {
+                //Stream disposed ignore and return. THIS WONT HAPPEN AS CHECK FOR CLIENT.ISCONNECTED works
+                return;
+            }
 
-                int bytesread = client.clientStream.EndRead(ar);
+            //Append the number of bytes read from buffer into the clients string builder object
+            client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
 
-                client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+            //Process the message and empty the Clients buffer (only take the amount read)
+            if (client.messageReceived.Length > 0)
+                //ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
+                ProcessMessage(client, client.buffer.Take(bytesread).ToArray());
 
-                //Process the message and empty the Clients buffer (only take the amount read)
-                if (client.messageReceived.Length > 0)
-                    ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
-     
-                client.EmptyBuffers();
-                
-                //client.DoneReading().Set();   
-                try {
-                    client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
-                } catch (Exception) { }
-            } catch (Exception e) {
-                MessageBox.Show(e.ToString());
+            client.EmptyBuffers();
+
+            //client.DoneReading().Set();
+
+            if (client.IsConnected) {
+                Debug.WriteLine("About to begin reading again! ))))))))))))))))");
+                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+            }
+            else {
+                //Call return as the client is no longer connected
+                return;
             }
 
         }
@@ -284,7 +299,8 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-            //ShutdownServer();
+            Debug.WriteLine("CALL FROM WORKER COMPLETED");
+            ShutdownServer();
         }
 
         //Resolves an IPv4 Address for this host
@@ -293,7 +309,7 @@ namespace Server {
                               a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
         }
 
-        
+
 
         //================ CROSS THREAD DELEGATES =================//
         //=========================================================//
@@ -305,7 +321,7 @@ namespace Server {
                 return;
             }
             //if (clientlist.NumberClients < 1) {
-                
+
             //}
             listBoxClients.DataSource = new BindingSource(dictRef, null);
             listBoxClients.DisplayMember = "Key";
@@ -333,7 +349,7 @@ namespace Server {
             btnHost.Enabled = false;
             //btnStop.Enabled = true;
 
-            
+
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -346,15 +362,16 @@ namespace Server {
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
-            if (pServerRunning == true) {
-                exit = 1;
-            }
+            //if (pServerRunning == true) {
+            exit = 1;
+            tcpListener.Stop();
+            //}
         }
 
         private void btnRemoveClient_Click(object sender, EventArgs e) {
             if (dictRef.IsEmpty) return;
             try {
-                if (!RemoveClient(((ServerClient)(listBoxClients.SelectedValue)).ID)) {
+                if (!RemoveClient(((ServerClient)(listBoxClients.SelectedValue)).ID, false)) {
                     MessageBox.Show("Failed to remove Client!");
                 }
             } catch (Exception ex) {
@@ -363,7 +380,7 @@ namespace Server {
         }
 
 
- 
+
         public void SetupEventHandlers() {
             EventHandler host_enter = new EventHandler(serverParams_Enter);
             EventHandler host_leave = new EventHandler(serverParams_Leave);
@@ -376,7 +393,7 @@ namespace Server {
         private void serverParams_Enter(object sender, EventArgs e) {
             ActiveForm.AcceptButton = btnHost;
         }
-         
+
         private void serverParams_Leave(object sender, EventArgs e) {
             ActiveForm.AcceptButton = null;
         }
@@ -415,7 +432,7 @@ namespace Server {
 
     } //End ServerMain Class
 
-    
+
 
     public static class Constants {
 

@@ -71,10 +71,12 @@ namespace ClientProgram {
 
         //Notify Server we are closing nad release resources
         public void Close() {
-            Send(new ServerMessage("-exit", 1, "MG").SerializeToBytes());
-            clientStream.Close();
-            tcpClient.Close();
-            clientStream.Dispose();
+            try {
+                Send(new ServerMessage("-exit", 1, "Exit").SerializeToBytes());
+                clientStream.Close();
+                tcpClient.Close();
+                clientStream.Dispose();
+            } catch (Exception) {}
         }
 
         public bool Send(byte[] messageToSend) {

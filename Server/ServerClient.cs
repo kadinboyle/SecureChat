@@ -18,6 +18,7 @@ namespace Server {
         private String clientPort;
         private String localPort;
         private String id;
+        private bool isConnected;
         public byte[] buffer = new byte[65000];
         private ManualResetEvent doneReading;
         private StringBuilder strbuilder;
@@ -52,6 +53,7 @@ namespace Server {
             localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
             strbuilder = new StringBuilder();
+            IsConnected = true;
         }
 
         public void EmptyBuffers(){
@@ -59,8 +61,8 @@ namespace Server {
             strbuilder.Clear();
         }
 
-        public NetworkStream GetStream() {
-            return clientStream;
+        public bool CanWrite() {
+            return clientStream.CanWrite;
         }
 
         public String ClientDetails() {
@@ -92,10 +94,16 @@ namespace Server {
             set { this.clientAddress = value; }
         }
 
-        public void Close() {
+        public bool IsConnected {
+            get { return isConnected; }
+            set { isConnected = value; }
+        }
+
+        public void Close(bool clientInitiated) {
+            IsConnected = false;
             if (clientStream != null) {
                 try {
-                    Send(EXIT_MSG.SerializeToBytes());
+                    if(!clientInitiated) Send(EXIT_MSG.SerializeToBytes());
                     clientStream.Close();
                     clientStream.Dispose();
                 } catch (Exception e) {
@@ -105,6 +113,7 @@ namespace Server {
 
             if (tcpClient != null)
                 tcpClient.Close();
+            
         }
 
         /**
