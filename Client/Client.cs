@@ -21,6 +21,7 @@ namespace ClientProgram {
         private String localPort;
         private String id;
         private StringBuilder messageReceived;
+        public byte[] input_buffer = new byte[10000];
 
         public Client() {
 

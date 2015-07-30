@@ -19,15 +19,15 @@ namespace Server {
         private String localPort;
         private String id;
         private bool isConnected;
-        public byte[] buffer = new byte[65000];
+        public byte[] buffer = new byte[10000];
         private ManualResetEvent doneReading;
-        private StringBuilder strbuilder;
+        //private StringBuilder strbuilder;
 
         private ServerMessage EXIT_MSG = new ServerMessage("-exit", 1, "EXIT");
 
-        public StringBuilder messageReceived {
-            get { return strbuilder; }
-        }
+        //public StringBuilder messageReceived {
+            //get { return strbuilder; }
+        //}
 
         public ManualResetEvent DoneReading() {
             return doneReading;
@@ -52,13 +52,13 @@ namespace Server {
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
             localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
-            strbuilder = new StringBuilder();
+            //strbuilder = new StringBuilder();
             IsConnected = true;
         }
 
         public void EmptyBuffers(){
             Array.Clear(buffer, 0, buffer.Length);
-            strbuilder.Clear();
+            //strbuilder.Clear();
         }
 
         public bool CanWrite() {

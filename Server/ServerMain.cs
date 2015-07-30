@@ -237,7 +237,7 @@ namespace Server {
 
             // Launch background thread to loop for server response to input
             //bgReadWorker.RunWorkerAsync(client);
-            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+            client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
         }
 
 
@@ -264,20 +264,21 @@ namespace Server {
             }
 
             //Append the number of bytes read from buffer into the clients string builder object
-            client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+           // client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
 
             //Process the message and empty the Clients buffer (only take the amount read)
-            if (client.messageReceived.Length > 0)
+            if (bytesread > 0)
                 //ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
                 ProcessMessage(client, client.buffer.Take(bytesread).ToArray());
 
-            client.EmptyBuffers();
+            Array.Clear(client.buffer, 0, client.buffer.Length);
+            //client.EmptyBuffers();
 
             //client.DoneReading().Set();
-
+            //TODO: SET GLOBAL FOR BUFFER SIZE!!!
             if (client.IsConnected) {
                 Debug.WriteLine("About to begin reading again! ))))))))))))))))");
-                client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
+                client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
             }
             else {
                 //Call return as the client is no longer connected

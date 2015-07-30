@@ -11,11 +11,12 @@ using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
 using ProtoBuf;
+using System.Threading;
 
 namespace ClientProgram {
     public partial class ClientMain : Form {
 
-        private Client clientSelf;
+        private volatile Client clientSelf;
         private IPAddress serverAddress;
         private ConsoleLogger console;
         public int exit = 0;
@@ -23,6 +24,7 @@ namespace ClientProgram {
         public delegate void ObjectDelegate(object obj);
         public ObjectDelegate del_console;
         public ObjectDelegate del_clientlist;
+        private static ManualResetEvent doneReading = new ManualResetEvent(false);
 
         public ClientMain() {
             InitializeComponent();
@@ -44,7 +46,7 @@ namespace ClientProgram {
         }
 
         //Parse into ServerMessage format, the serialize to byte[] and send
-        private void ProcessMessage(String[] commands, String msg) {
+        private void ParseMessage(String[] commands, String msg) {
             String mainCommand = commands[0];
             String secondCommand = "";
             if(commands.Length > 1)
@@ -54,6 +56,7 @@ namespace ClientProgram {
             switch (mainCommand) {
                 case Commands.TERMINATE_CONN:
                     clientSelf.Close(); //Notifies server we are leaving and releases resources
+                    UpdateListBox("");
                     break;
                 case Commands.SAY:
                     servmsg = new ServerMessage("-say", 1, msg);
@@ -92,21 +95,80 @@ namespace ClientProgram {
             //pServerRunning = false;
         }
 
+        
+        
+        
         //=============== BACKGROUND WORKER/THREADS ===============//
         //=========================================================//
 
         //TODO: MAKE PROCESSMESGSAGE_IN AND OUT
+
+        public void OnRead(IAsyncResult ar) {
+            //Set ServerClient object from async state and store number of bytes read,
+            //whilst reading into buffer
+            Client client = (Client)ar.AsyncState;
+            int bytesread = 0;
+
+            bytesread = client.clientStream.EndRead(ar);
+
+
+            //Append the number of bytes read from buffer into the clients string builder object
+            // client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
+
+            //Process the message and empty the Clients buffer (only take the amount read)
+            if (bytesread > 0)
+                //ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
+                ProcessMessageReceived(client.input_buffer.Take(bytesread).ToArray());
+
+            Array.Clear(client.input_buffer, 0, client.input_buffer.Length);
+            doneReading.Set();
+
+        }
+
+        private void ProcessMessageReceived(byte[] msgReceived) {
+            ServerMessage smsg = msgReceived.DeserializeFromBytes();
+            String mainCommand = smsg.mainCommand;
+            String secondCommand = "";
+            int noCmds = smsg.noCommands;
+            String payload = smsg.payload;
+            if (noCmds == 2)
+                secondCommand = smsg.secondCommand;
+            //TODO: Simplify the above into own method
+
+            switch (mainCommand) {
+                //TODO: Obviously this is fairly insecure
+                case "-exit":
+                    del_console.Invoke("Server is closing connection...");
+                    UpdateListBox(", ");
+                    exit = 1;
+                    break;
+                case "-newlist":
+                    //We have received an update for our client list
+                    del_clientlist.Invoke(payload);
+                    break;
+                default:
+                    del_console.Invoke(payload);
+                    break;
+            }
+
+        }
+
+        private void DoBeginRead() {
+            doneReading.Reset();
+            clientSelf.clientStream.BeginRead(clientSelf.input_buffer, 0, 10000, new AsyncCallback(OnRead), clientSelf);
+            doneReading.WaitOne();
+
+        }
 
         //Main Server loop this one does all the work
         void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
             
             //Loop until exit flag becomes 1
             while (exit == 0) {
-
+                DoBeginRead();
+                /**
                 //Poll until we have a message
                 if (clientSelf.HasMessage()) {
-
-                    
 
                     //Receive message then call it Invoke on the delegate
                     //to print it. (because txt box we are printing on is
@@ -125,7 +187,7 @@ namespace ClientProgram {
                             //TODO: Obviously this is fairly insecure
                         case "-exit":
                             del_console.Invoke("Server is closing connection...");
-                            UpdateListBox("");
+                            UpdateListBox(", ");
                             exit = 1;
                             break;
                         case "-newlist":
@@ -138,6 +200,7 @@ namespace ClientProgram {
                     }
 
                 }
+                 * **/
             }
         }
 
@@ -161,7 +224,8 @@ namespace ClientProgram {
             }
             String x = (String)obj;
             clientlist = x.Split(',').ToList();
-
+            
+            //TODO: Fix empty list here...
             listBoxClients.DataSource = new BindingSource(clientlist, null);
         }
 
@@ -188,7 +252,6 @@ namespace ClientProgram {
 
             try {
                 clientSelf = new Client(new TcpClient(addr, port));
-                //exit = 0;
             } catch (ArgumentNullException) {
                 MessageBox.Show("Invalid Hostname!");
                 return;
@@ -217,18 +280,18 @@ namespace ClientProgram {
             if (CountWords(input) < 1 || input.Length < 1) {
                 return;
             }              
-            ProcessMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
+            ParseMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
             txtInput.Text = "";      
         }
 
         private void btnWhisper_Click(object sender, EventArgs e) {
-            
-            String selectedClient = (String)listBoxClients.SelectedValue;
-            //if (CountWords(selectedClient) < 1) {
-               // return;
-           // }
-            ProcessMessage(new String[] { Commands.WHISPER, selectedClient }, "FUCK YOU");
-            txtWhisper.Text = "";
+            String targetClientId = (String)listBoxClients.SelectedValue;
+            String input = txtInput.Text.Trim();
+            if (CountWords(input) < 1 || input.Length < 1) {
+                return;
+            }    
+            ParseMessage(new String[] { Commands.WHISPER, targetClientId }, input);
+            txtInput.Text = "";
         }
 
 
