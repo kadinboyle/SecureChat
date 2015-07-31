@@ -36,9 +36,7 @@ namespace Server {
         private String pServerPort;
         private TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
-        private static volatile ConcurrentDictionary<String, ServerClient> dictRef;
-        private int numClients = 0;
-        private int exit = 0;
+
 
         public delegate void ObjectDelegate(object obj);
         public static ObjectDelegate del_console;
@@ -50,11 +48,9 @@ namespace Server {
             console_obj = new ConsoleLogger(txtConsole);
             pServerRunning = false;
             clientlist = new ClientList();
-            dictRef = clientlist.getDict();
             txtAddress.Text = ResolveAddress().ToString();
             txtPort.Text = "13000";
             SetupEventHandlers();
-            //Set up our delegates for accessing console TextBox and Client ListBox cross thread
             del_console = new ObjectDelegate(UpdateTextBox);
             del_list = new ObjectDelegate(UpdateListBox);
         }
@@ -81,9 +77,13 @@ namespace Server {
             pServerRunning = true;
             while (pServerRunning) {
                 //Check for new connection and then begin async reading operations for client
-                DoBeginAcceptTcpClient(tcpListener);
+                BeginAcceptTcpClient(tcpListener);
             }
         }
+
+
+        //============= COMMUNICATION AND PROCESSING ==============//
+        //=========================================================//
 
         private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
             ServerMessage smsg = msgReceived.DeserializeFromBytes();
@@ -114,9 +114,6 @@ namespace Server {
             }
         }
 
-        //============= COMMUNICATION AND PROCESSING ==============//
-        //=========================================================//
-
         //Sends a message only to the specified client
         private static void SendToClient(ServerClient client, string msg, string sendersId) {
             byte[] toSend = new ServerMessage("-say", 1, sendersId + "(Private Message): " + msg).SerializeToBytes();
@@ -138,7 +135,7 @@ namespace Server {
             }
         }
 
-        //Add the client then update our list and the clients
+        //Add the client then update our list of clients
         private static void AddClient(ServerClient client) {
             clientlist.Add(client);
             UpdateClientsList();
@@ -157,6 +154,7 @@ namespace Server {
             return false;
         }
 
+        //Notifies all connected clients of the new client list
         private static void UpdateClientsList() {
             del_list.Invoke(null);
             String newlist = String.Join(",", clientlist.ClientIds());
@@ -170,6 +168,7 @@ namespace Server {
                 tcpListener.Stop();
                 pServerRunning = false;
                 del_console.Invoke("Closing!...Connections Terminated... Server shutting down");
+                UpdateListBox("");
                 btnHost.Enabled = true;
             }
             else
@@ -183,16 +182,16 @@ namespace Server {
         public static ManualResetEvent tcpClientConnected = new ManualResetEvent(false);
 
         // Accept one client connection asynchronously. 
-        public static void DoBeginAcceptTcpClient(TcpListener listener) {
+        public static void BeginAcceptTcpClient(TcpListener listener) {
             if (!pServerRunning) return;
             // Set the event to nonsignaled state, Accept the connection, then till processed before continuing
             tcpClientConnected.Reset();
-            listener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), listener);
+            listener.BeginAcceptTcpClient(new AsyncCallback(OnAcceptTcpClientCallback), listener);
             tcpClientConnected.WaitOne();
         }
 
         // Process the client connection. 
-        public static void DoAcceptTcpClientCallback(IAsyncResult ar) {
+        public static void OnAcceptTcpClientCallback(IAsyncResult ar) {
 
             ServerClient client;
             // Get the listener that handles the client request.
@@ -207,18 +206,18 @@ namespace Server {
             }
             
             AddClient(client);
-            client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
+            client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnReadClientCallback), client);
         }
 
-        public static void OnRead(IAsyncResult ar) {
-            //Set ServerClient object from async state and store number of bytes read,
-            //whilst reading into buffer
+        public static void OnReadClientCallback(IAsyncResult ar) {
+
+            //Get Client object from async state and read data into buffer
             ServerClient client = (ServerClient)ar.AsyncState;
             int bytesread = 0;
             try {
                 bytesread = client.clientStream.EndRead(ar);
             } catch (ObjectDisposedException) {
-                //Stream disposed ignore and return. THIS WONT HAPPEN AS CHECK FOR CLIENT.ISCONNECTED works
+                //Client has disconnected, so end async operations by returning
                 return;
             }
 
@@ -229,13 +228,11 @@ namespace Server {
             Array.Clear(client.buffer, 0, client.buffer.Length);
 
             //TODO: SET GLOBAL FOR BUFFER SIZE!!!
+            //If the client is still connected after messasge processing above, continue, else end async reading operations
             if (client.IsConnected) {
-                client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
+                client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnReadClientCallback), client);
             }
-            else {
-                //Call return as the client is no longer connected
-                return;
-            }
+            else return;
 
         }
 
@@ -252,15 +249,7 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-            MessageBox.Show("WORKER THREAD DONE!");
         }
-
-        //Resolves an IPv4 Address for this host
-        private IPAddress ResolveAddress() {
-            return Array.Find(Dns.GetHostEntry(string.Empty).AddressList,
-                              a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
-        }
-
 
 
         //================ CROSS THREAD DELEGATES =================//
@@ -272,12 +261,14 @@ namespace Server {
                 Invoke(del_list, obj);
                 return;
             }
-            //if (clientlist.NumberClients < 1) {
-
-            //}
-            listBoxClients.DataSource = new BindingSource(dictRef, null);
-            listBoxClients.DisplayMember = "Key";
-            listBoxClients.ValueMember = "Value";
+            if (clientlist.NumberClients < 1) {
+                listBoxClients.DataSource = new BindingSource("", null);
+            }
+            else {
+                listBoxClients.DataSource = new BindingSource(clientlist.UnderlyingDictionary, null);
+                listBoxClients.DisplayMember = "Key";
+                listBoxClients.ValueMember = "Value";
+            }
         }
 
         private void UpdateTextBox(object obj) {
@@ -294,14 +285,13 @@ namespace Server {
 
         //=================== EVENT HANDLERS ======================//
         //=========================================================//
-        private void hostBtn_Click(object sender, EventArgs e) {
+
+        //HOST SERVER button clicked
+        private void btnHost_Click(object sender, EventArgs e) {
             IPAddress ip = GetIpAddress();
             int port = GetPortInteger();
             if (port == -1 || ip == null) return;
             btnHost.Enabled = false;
-            //btnStop.Enabled = true;
-
-
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -313,12 +303,15 @@ namespace Server {
             bgWorker.RunWorkerAsync(new List<object> { ip, port });
         }
 
+
+        //STOP button clicked
         private void btnStop_Click(object sender, EventArgs e) {
             ShutdownServer();
         }
 
+        //REMOVE client button clicked
         private void btnRemoveClient_Click(object sender, EventArgs e) {
-            if (dictRef.IsEmpty) return;
+            if (clientlist.IsEmpty) return;
             try {
                 if (!RemoveClient(((ServerClient)(listBoxClients.SelectedValue)).ID, false)) {
                     MessageBox.Show("Failed to remove Client!");
@@ -328,8 +321,7 @@ namespace Server {
             }
         }
 
-
-
+        //Setup event handlers for address and port text fields
         public void SetupEventHandlers() {
             EventHandler host_enter = new EventHandler(serverParams_Enter);
             EventHandler host_leave = new EventHandler(serverParams_Leave);
@@ -340,11 +332,11 @@ namespace Server {
         }
 
         private void serverParams_Enter(object sender, EventArgs e) {
-            ActiveForm.AcceptButton = btnHost;
+            this.AcceptButton = btnHost;
         }
 
         private void serverParams_Leave(object sender, EventArgs e) {
-            ActiveForm.AcceptButton = null;
+            this.AcceptButton = null;
         }
 
         //===================== FORM CHECKING =====================//
@@ -372,15 +364,14 @@ namespace Server {
             return address;
         }
 
-
-        private static int enable_reuse_address(Socket socket) {
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            return 0;
+        //Resolves an IPv4 Address for this host
+        private IPAddress ResolveAddress() {
+            return Array.Find(Dns.GetHostEntry(string.Empty).AddressList,
+                              a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
         }
 
 
     } //End ServerMain Class
-
 
 
     public static class Constants {
@@ -388,7 +379,7 @@ namespace Server {
         //Server paramaters
         public const int MAX_BACKLOG = 20;
         public const int NAME_SIZE = 40;
-        public const int MAX_CHATS = 40;
+        public const int MAX_CHATS = 10;
         public const int MAX_CUSTOM_NAME = 15;
 
         //Messages
@@ -399,15 +390,5 @@ namespace Server {
         public const string HELP = "/help";
 
     }
-
-    public static class Utils {
-
-        public static int CountWords(string s) {
-            return s.Split().Length;
-        }
-
-    }
-
-
 
 }

@@ -81,7 +81,7 @@
             this.btnHost.TabIndex = 4;
             this.btnHost.Text = "Host";
             this.btnHost.UseVisualStyleBackColor = true;
-            this.btnHost.Click += new System.EventHandler(this.hostBtn_Click);
+            this.btnHost.Click += new System.EventHandler(this.btnHost_Click);
             // 
             // txtConsole
             // 

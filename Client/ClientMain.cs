@@ -43,7 +43,6 @@ namespace ClientProgram {
             if (clientSelf.IsConnected) Shutdown();
         }
 
-
         private void DecryptMessage(string msg) {
 
         }
@@ -95,11 +94,9 @@ namespace ClientProgram {
 
 
 
-
         //=============== BACKGROUND WORKER/THREADS ===============//
         //=========================================================//
 
-        //TODO: MAKE PROCESSMESGSAGE_IN AND OUT
 
         private void DoBeginRead() {
             doneReading.Reset();
@@ -109,21 +106,20 @@ namespace ClientProgram {
         }
 
         public void OnRead(IAsyncResult ar) {
-            //Set ServerClient object from async state and store number of bytes read,
-            //whilst reading into buffer
+
+            //Get Client object from async state and read data into buffer
             Client client = (Client)ar.AsyncState;
             int bytesread = 0;
             try {
                 bytesread = client.clientStream.EndRead(ar);
             } catch (ObjectDisposedException) {
-                doneReading.Set();
+                //Client has disconnected, so end async operations by returning
                 return;
             }
             finally {
-                //MessageBox.Show("Finally!");
-                //doneReading.Set();
+                doneReading.Set();
             }
-            doneReading.Set();
+
             //Process the message and empty the Clients buffer (only take the amount read)
             if (bytesread > 0)
                 ProcessMessageReceived(client.input_buffer.Take(bytesread).ToArray());
@@ -131,6 +127,7 @@ namespace ClientProgram {
             Array.Clear(client.input_buffer, 0, client.input_buffer.Length);
         }
 
+        //Processes a message received from the server
         private void ProcessMessageReceived(byte[] msgReceived) {
             ServerMessage smsg = msgReceived.DeserializeFromBytes();
             String mainCommand = smsg.mainCommand;
@@ -178,7 +175,7 @@ namespace ClientProgram {
                 MessageBox.Show(e.Error.Message);
             }
             else {
-                MessageBox.Show("Successfully Disonnected from Server!");
+                //MessageBox.Show("Successfully Disonnected from Server!");
             }
         }
 
@@ -212,7 +209,7 @@ namespace ClientProgram {
         //=========================================================//
 
         /****** Buttons ******/
-        private void connectButton_Click(object sender, EventArgs e) {
+        private void btnConnect_Click(object sender, EventArgs e) {
 
             //Check that the details the user entered are valid
             String addr = GetIpAddress();
@@ -294,11 +291,11 @@ namespace ClientProgram {
         }
 
         private void txtInput_Leave(object sender, EventArgs e) {
-            ActiveForm.AcceptButton = null;
+            this.AcceptButton = null;
         }
 
         private void serverParams_Enter(object sender, EventArgs e) {
-            ActiveForm.AcceptButton = btnConnect;
+            this.AcceptButton = btnConnect;
         }
 
         private void serverParams_Leave(object sender, EventArgs e) {

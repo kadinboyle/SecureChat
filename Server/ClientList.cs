@@ -12,23 +12,16 @@ namespace Server {
 
     public class ClientList {
 
-        private bool NOTIFY_CLIENT = true;
-
         private ConcurrentDictionary<String, ServerClient> clientlist;
         private int idCount = 1000;
-        private int numClients = 0;
-
+       
         public ClientList() {
             clientlist = new ConcurrentDictionary<String, ServerClient>();
         }
 
-        public ConcurrentDictionary<String, ServerClient> getDict() {
-            return clientlist;
+        public ConcurrentDictionary<String, ServerClient> UnderlyingDictionary {
+            get { return this.clientlist; }
         }
-
-        //public ICollection<String> ClientIds() {
-           // return clientlist.Keys;
-        //}
 
         public String[] ClientIds() {
             return clientlist.Keys.ToArray();
@@ -43,7 +36,6 @@ namespace Server {
             newClient.ID = "C" + idCount;
             clientlist.GetOrAdd(newClient.ID, newClient);
             idCount++;
-            numClients++;
         }
 
         //Removes a client from this clientlist and shuts it down gracefully
@@ -51,7 +43,6 @@ namespace Server {
             ServerClient removed;
             if (clientlist.TryRemove(id, out removed)) {
                 removed.Close(notifyClient);
-                numClients--;
                 return true;
             }
             return false;
@@ -73,8 +64,11 @@ namespace Server {
         }
 
         public int NumberClients {
-            get { return this.numClients; }
-            set { this.numClients = value; }
+            get { return clientlist.Count; }
+        }
+
+        public bool IsEmpty {
+            get { return clientlist.IsEmpty; }
         }
 
 
