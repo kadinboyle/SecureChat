@@ -72,8 +72,9 @@ namespace ClientProgram {
             byte[] toSend = servmsg.SerializeToBytes();
 
             try {
-                if (!clientSelf.Send(toSend)) { }
-                //MessageBox.Show("Error sending text!");
+                if (!clientSelf.Send(toSend)) {
+                    MessageBox.Show("Error sending message to Server!");
+                }
             } catch (ObjectDisposedException exc) {
                 MessageBox.Show(exc.ToString());
             } catch (ArgumentNullException exc) {
@@ -95,9 +96,9 @@ namespace ClientProgram {
 
 
         //=============== BACKGROUND WORKER/THREADS ===============//
-        //=========================================================//
+        //==================== ASYNC CALLBACKS ====================//
 
-
+        //Initiate BeginRead from network stream and call OnRead callback when done
         private void DoBeginRead() {
             doneReading.Reset();
             if (clientSelf.IsConnected)
@@ -155,8 +156,6 @@ namespace ClientProgram {
             }
 
         }
-
-
 
         //Main Server loop this one does all the work
         void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
@@ -264,7 +263,6 @@ namespace ClientProgram {
 
 
         private void btnStop_Click(object sender, EventArgs e) {
-            //clientSelf.IsConnected = false;
             Shutdown();
 
         }
