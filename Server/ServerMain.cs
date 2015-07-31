@@ -70,19 +70,18 @@ namespace Server {
         //=========================================================//
         public void RunMain(IPAddress address, int port) {
 
+            //Start tcp Listener object that will accept connections with a backlog specified.
             tcpListener = new TcpListener(address, port);
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            tcpListener.Start(20);
-
+            tcpListener.Start(Constants.MAX_BACKLOG);
 
             del_console.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
                                                ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
             pServerRunning = true;
-            while (exit == 0) {
-                //Check for new connection and then begin async reading operations
+            while (pServerRunning) {
+                //Check for new connection and then begin async reading operations for client
                 DoBeginAcceptTcpClient(tcpListener);
-
             }
         }
 
@@ -90,24 +89,27 @@ namespace Server {
             ServerMessage smsg = msgReceived.DeserializeFromBytes();
 
             String mainCommand = smsg.mainCommand;
-            String secondCommand = "";
+            String messageRecipientId = "";
             int noCmds = smsg.noCommands;
             String payload = smsg.payload;
             if (noCmds == 2)
-                secondCommand = smsg.secondCommand;
+                messageRecipientId = smsg.secondCommand;
 
             switch (mainCommand) {
                 case Commands.TERMINATE_CONN:
                     clientlist.Remove(sender.ID, true);
+                    String leavemsg = sender.ID + " leaves the chat...";
                     UpdateClientsList();
-                    del_console.Invoke(sender.ID + " leaves the chat...");
+                    del_console.Invoke(leavemsg);
+                    DistributeMessage(new ServerMessage("-say", 1, leavemsg));
                     break;
                 case Commands.SAY:
-                    SendToAll(payload, sender);
+                    String fullmsg = sender.ID + ": " + payload;
+                    DistributeMessage(new ServerMessage("-say", 1, fullmsg));
                     break;
                 case Commands.WHISPER:
                     if (noCmds == 2)
-                        SendToClient(clientlist.FindClientById(secondCommand), payload);
+                        SendToClient(clientlist.FindClientById(messageRecipientId), payload, sender.ID);
                     break;
             }
         }
@@ -116,34 +118,20 @@ namespace Server {
         //=========================================================//
 
         //Sends a message only to the specified client
-        private static void SendToClient(ServerClient client, string msg) {
-
-            byte[] toSend = new ServerMessage("-say", 1, client.ID + "(Private Message): " + msg).SerializeToBytes();
+        private static void SendToClient(ServerClient client, string msg, string sendersId) {
+            byte[] toSend = new ServerMessage("-say", 1, sendersId + "(Private Message): " + msg).SerializeToBytes();
             client.Send(toSend);
-            //client.Send(client.ID +"(Private Message): " + msg);
         }
 
-        //Send a message to all clients on the server from a given sender
-        private static void SendToAll(string msg, ServerClient sender) {
-            String fullmsg = sender.ID + ": " + msg;
-            byte[] toSend = new ServerMessage("-say", 1, fullmsg).SerializeToBytes();
-            foreach (var client in clientlist.ValuesD()) {
-                try {
-                    client.Send(toSend);
-                } catch (ObjectDisposedException o) { // Stream is closed
-                    MessageBox.Show(o.ToString() + Environment.NewLine + "-> Removing Client from server");
-                    RemoveClient(client.ID, true);
-                } catch (ArgumentNullException a) { //buffer invalid
-                    MessageBox.Show(a.ToString());
-                };
-            }
-        }
-
-        private static void SendServerMessageAll(ServerMessage serv_msg) {
+        //Used for sending important server message to all
+        private static void DistributeMessage(ServerMessage serv_msg) {
             byte[] msg = serv_msg.SerializeToBytes();
-            foreach (var client in clientlist.ValuesD()) {
+            foreach (var client in clientlist.AllClients()) {
                 try {
                     client.Send(msg);
+                } catch (ObjectDisposedException o) { // Stream is closed
+                    del_console.Invoke("Error occured sending message to: " + client.ID + ". Removing...");
+                    RemoveClient(client.ID, true);
                 } catch (ArgumentNullException exc) { //buffer invalid
                     MessageBox.Show(exc.ToString());
                 };
@@ -171,8 +159,8 @@ namespace Server {
 
         private static void UpdateClientsList() {
             del_list.Invoke(null);
-            String newlist = String.Join(",", clientlist.getDict().Keys.ToArray());
-            SendServerMessageAll(new ServerMessage("-newlist", 1, newlist));
+            String newlist = String.Join(",", clientlist.ClientIds());
+            DistributeMessage(new ServerMessage("-newlist", 1, newlist));
         }
 
         //Remove and terminate all client connections and streams, then stop the listener object
@@ -197,11 +185,9 @@ namespace Server {
         // Accept one client connection asynchronously. 
         public static void DoBeginAcceptTcpClient(TcpListener listener) {
             if (!pServerRunning) return;
-            // Set the event to nonsignaled state.
+            // Set the event to nonsignaled state, Accept the connection, then till processed before continuing
             tcpClientConnected.Reset();
-            // Accept the connection.  
             listener.BeginAcceptTcpClient(new AsyncCallback(DoAcceptTcpClientCallback), listener);
-            // Wait until a connection is made and processed before continuing
             tcpClientConnected.WaitOne();
         }
 
@@ -213,41 +199,15 @@ namespace Server {
             TcpListener listener = (TcpListener)ar.AsyncState;
             try {
                 client = new ServerClient(listener.EndAcceptTcpClient(ar));
-
-            } catch (Exception) {
-                Debug.WriteLine("Object Disposed. Cancelling");
-                tcpClientConnected.Set();
+            } catch (ObjectDisposedException) {
                 return;
             }
-            tcpClientConnected.Set();
+            finally {
+                tcpClientConnected.Set();
+            }
+            
             AddClient(client);
-
-
-
-            //TODO: Have a think about the logic and thread flow here.
-            // Signal the calling thread to continue.
-            //tcpClientConnected.Set();
-
-
-            //Initiate callback method for reading from client
-            //DoBeginRead(client);
-            //BackgroundWorker bgReadWorker = new BackgroundWorker();
-            //bgReadWorker.DoWork += new DoWorkEventHandler(bgReadWorker_DoRead);
-            //bgReadWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgReadWorker_RunCompleted);
-
-            // Launch background thread to loop for server response to input
-            //bgReadWorker.RunWorkerAsync(client);
             client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
-        }
-
-
-        private static void bgReadWorker_DoRead(object sender, DoWorkEventArgs e) {
-            ServerClient client = e.Argument as ServerClient;
-            client.clientStream.BeginRead(client.buffer, 0, 65000, new AsyncCallback(OnRead), client);
-        }
-
-        private static void bgReadWorker_RunCompleted(object sender, RunWorkerCompletedEventArgs e) {
-            MessageBox.Show("Finished");
         }
 
         public static void OnRead(IAsyncResult ar) {
@@ -256,28 +216,20 @@ namespace Server {
             ServerClient client = (ServerClient)ar.AsyncState;
             int bytesread = 0;
             try {
-                if (client.IsConnected)
-                    bytesread = client.clientStream.EndRead(ar);
+                bytesread = client.clientStream.EndRead(ar);
             } catch (ObjectDisposedException) {
                 //Stream disposed ignore and return. THIS WONT HAPPEN AS CHECK FOR CLIENT.ISCONNECTED works
                 return;
             }
 
-            //Append the number of bytes read from buffer into the clients string builder object
-           // client.messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(client.buffer, 0, bytesread));
-
             //Process the message and empty the Clients buffer (only take the amount read)
             if (bytesread > 0)
-                //ProcessMessage(client, Encoding.ASCII.GetBytes(client.messageReceived.ToString()));
                 ProcessMessage(client, client.buffer.Take(bytesread).ToArray());
 
             Array.Clear(client.buffer, 0, client.buffer.Length);
-            //client.EmptyBuffers();
 
-            //client.DoneReading().Set();
             //TODO: SET GLOBAL FOR BUFFER SIZE!!!
             if (client.IsConnected) {
-                Debug.WriteLine("About to begin reading again! ))))))))))))))))");
                 client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnRead), client);
             }
             else {
@@ -300,8 +252,7 @@ namespace Server {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
-            Debug.WriteLine("CALL FROM WORKER COMPLETED");
-            ShutdownServer();
+            MessageBox.Show("WORKER THREAD DONE!");
         }
 
         //Resolves an IPv4 Address for this host
@@ -363,10 +314,7 @@ namespace Server {
         }
 
         private void btnStop_Click(object sender, EventArgs e) {
-            //if (pServerRunning == true) {
-            exit = 1;
-            tcpListener.Stop();
-            //}
+            ShutdownServer();
         }
 
         private void btnRemoveClient_Click(object sender, EventArgs e) {
@@ -438,6 +386,7 @@ namespace Server {
     public static class Constants {
 
         //Server paramaters
+        public const int MAX_BACKLOG = 20;
         public const int NAME_SIZE = 40;
         public const int MAX_CHATS = 40;
         public const int MAX_CUSTOM_NAME = 15;

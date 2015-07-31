@@ -22,6 +22,7 @@ namespace ClientProgram {
         private String id;
         private StringBuilder messageReceived;
         public byte[] input_buffer = new byte[10000];
+        private volatile bool _isConnected;
 
         public Client() {
 
@@ -72,6 +73,7 @@ namespace ClientProgram {
 
         //Notify Server we are closing nad release resources
         public void Close() {
+            this.IsConnected = false;
             try {
                 Send(new ServerMessage("-exit", 1, "Exit").SerializeToBytes());
                 clientStream.Close();
@@ -128,6 +130,11 @@ namespace ClientProgram {
             //string received = messageReceived.ToString();
            // messageReceived.Clear();
             return readBuffer.Take(numberOfBytesRead).ToArray();
+        }
+
+        public bool IsConnected {
+            get { return _isConnected;  }
+            set { _isConnected = value;  }
         }
 
         public bool HasMessage() {

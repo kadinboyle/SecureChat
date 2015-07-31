@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Diagnostics;
 
 namespace Server {
-    public class ServerClient{
+    public class ServerClient {
 
         public TcpClient tcpClient;
         public NetworkStream clientStream;
@@ -26,7 +26,7 @@ namespace Server {
         private ServerMessage EXIT_MSG = new ServerMessage("-exit", 1, "EXIT");
 
         //public StringBuilder messageReceived {
-            //get { return strbuilder; }
+        //get { return strbuilder; }
         //}
 
         public ManualResetEvent DoneReading() {
@@ -54,11 +54,6 @@ namespace Server {
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
             //strbuilder = new StringBuilder();
             IsConnected = true;
-        }
-
-        public void EmptyBuffers(){
-            Array.Clear(buffer, 0, buffer.Length);
-            //strbuilder.Clear();
         }
 
         public bool CanWrite() {
@@ -100,20 +95,18 @@ namespace Server {
         }
 
         public void Close(bool clientInitiated) {
-            IsConnected = false;
-            if (clientStream != null) {
-                try {
-                    if(!clientInitiated) Send(EXIT_MSG.SerializeToBytes());
-                    clientStream.Close();
-                    clientStream.Dispose();
-                } catch (Exception e) {
-                    Debug.WriteLine(e.ToString());
-                }
+            this.IsConnected = false;
+            try {
+                if (!clientInitiated) Send(EXIT_MSG.SerializeToBytes());
+                clientStream.Close();
+                clientStream.Dispose();
+            } catch (Exception e) {
+                Debug.WriteLine(e.ToString());
             }
 
             if (tcpClient != null)
                 tcpClient.Close();
-            
+
         }
 
         /**
@@ -126,14 +119,14 @@ namespace Server {
         public bool Send(String msgToSend) {
             if (clientStream.CanWrite) {
                 Byte[] sendBytes = Encoding.ASCII.GetBytes(msgToSend);
-                try{
+                try {
                     clientStream.Write(sendBytes, 0, sendBytes.Length);
                     return true;
-                }catch(ObjectDisposedException){
+                } catch (ObjectDisposedException) {
                     throw;
-                }catch(ArgumentNullException){
+                } catch (ArgumentNullException) {
                     throw;
-                } 
+                }
             }
             return false;
         }

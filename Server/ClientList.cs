@@ -4,13 +4,15 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 
 namespace Server {
+
+
     public class ClientList {
 
         private bool NOTIFY_CLIENT = true;
-        private bool DONT_NOTIFY = false;
 
         private ConcurrentDictionary<String, ServerClient> clientlist;
         private int idCount = 1000;
@@ -24,8 +26,16 @@ namespace Server {
             return clientlist;
         }
 
+        //public ICollection<String> ClientIds() {
+           // return clientlist.Keys;
+        //}
+
+        public String[] ClientIds() {
+            return clientlist.Keys.ToArray();
+        }
+
         //this Dictionary<String, ServerClient>.ValueCollection valueCollectionValues
-        public ICollection<ServerClient> ValuesD() {
+        public ICollection<ServerClient> AllClients() {
             return clientlist.Values;
         }
 
@@ -36,8 +46,7 @@ namespace Server {
             numClients++;
         }
 
-        //Remove by id NOT TO BE USED, AS IT CURRENTLY DOESNT SHUTDOWN THE CLIENT
-        //Overloaded
+        //Removes a client from this clientlist and shuts it down gracefully
         public bool Remove(String id, bool notifyClient) {
             ServerClient removed;
             if (clientlist.TryRemove(id, out removed)) {
@@ -48,15 +57,15 @@ namespace Server {
             return false;
         }
 
-
+        //Removes all Clients from this list gracefully
         public void ShutdownClients() {
             //Close all clients then remove them from the list
             foreach (var client in clientlist.Values) {
-                client.Close(NOTIFY_CLIENT);
+                Remove(client.ID, false);
             }
         }
 
-
+        //Find the client object associated with a given ID.
         public ServerClient FindClientById(String id) {
             ServerClient found = null;
             clientlist.TryGetValue(id, out found);
