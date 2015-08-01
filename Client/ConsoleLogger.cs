@@ -6,8 +6,14 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ClientProgram{
+
+    /// <summary>
+    /// Represents an object that associates a given text box control
+    /// as a "console" or named object
+    /// </summary>
     public class ConsoleLogger {
 
+        //Control references to the textbox
         private TextBox consoleBox;
 
         public ConsoleLogger(TextBox _consoleBox) {
@@ -15,16 +21,13 @@ namespace ClientProgram{
             this.consoleBox.ScrollBars = ScrollBars.Vertical;
         }
 
-        //TODO: Fix this: Cross thread exception? da fuq. FIXED I THINK.
+        /// <summary>
+        /// Appends the text to the TextBox, when passed a string
+        /// </summary>
+        /// <param name="text">String text to appended</param>
         public void log(String text) {
             consoleBox.AppendText(text);
             consoleBox.AppendText(Environment.NewLine); //Why on earth does this need to be on its own line?
-        }
-
-        public void log(byte[] bytes) {
-            string text = (String)Encoding.UTF8.GetString(bytes);
-            consoleBox.AppendText(text);
-            consoleBox.AppendText(Environment.NewLine);
         }
 
     }

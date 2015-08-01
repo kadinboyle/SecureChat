@@ -17,24 +17,32 @@ using System.Windows.Forms;
 
 namespace ServerProgram{
 
-    
+    /// <summary>
+    /// Represents an object that associates a given text box control
+    /// as a "console" or named object
+    /// </summary>
     public class ConsoleLogger {
 
+        //Control references to the textbox
         private TextBox consoleBox;
 
-        //Takes a TextBox object for constructor that is stored in private data field.
         public ConsoleLogger(TextBox _consoleBox) {
             this.consoleBox = _consoleBox;
             this.consoleBox.ScrollBars = ScrollBars.Vertical;
-            //TODO: This will need to be removed later and delegate created for accessing combo box 
-            //as ive done with the Textbox already.
-            //-- System.Windows.Forms.Form.CheckForIllegalCrossThreadCalls = false;
         }
-
+        
+        /// <summary>
+        /// Appends the text to the TextBox, when passed a string
+        /// </summary>
+        /// <param name="text">String text to appended</param>
         public void log(String text) {
             consoleBox.AppendText("Server: " + text + Environment.NewLine);
         }
 
+        /// <summary>
+        /// Appends the text to the TextBox, when passed a byte[]
+        /// </summary>
+        /// <param name="bytes"></param>
         public void log(byte[] bytes) {
             consoleBox.AppendText("Server: " + (Encoding.UTF8.GetString(bytes)) + Environment.NewLine);
         }
