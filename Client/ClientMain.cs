@@ -37,17 +37,54 @@ namespace ClientProgram {
             clientSelf.IsConnected = false;
         }
 
-        //Override the FormClosing so we can notify the server that we are disconnecting
+        /// <summary>
+        /// Override the FormClosing so we can notify the server that we are disconnecting
+        /// </summary>
+        /// <param name="e">Event Arguments for Form Closing</param>
         protected override void OnFormClosing(FormClosingEventArgs e) {
             base.OnFormClosing(e);
             if (clientSelf.IsConnected) Shutdown();
         }
 
-        private void DecryptMessage(string msg) {
+        /// <summary>
+        /// Processes a message received from the Server.
+        /// Deserializes the bytes into a ServerMessage object that is proccesed with
+        /// a switch case tree, then procesed.
+        /// </summary>
+        /// <param name="msgReceived"></param>
+        private void ProcessMessageReceived(byte[] msgReceived) {
 
+            ServerMessage smsg = msgReceived.DeserializeFromBytes();
+
+            String mainCommand = smsg.mainCommand;
+            String secondCommand = "";
+            int noCmds = smsg.noCommands;
+            String payload = smsg.payload;
+            if (noCmds == 2)
+                secondCommand = smsg.secondCommand;
+
+            switch (mainCommand) {
+                case "-exit":
+                    del_console.Invoke("Server is closing connection...");
+                    Shutdown();
+                    break;
+                case "-newlist":
+                    //We have received an update for our client list
+                    del_clientlist.Invoke(payload);
+                    break;
+                default:
+                    del_console.Invoke(payload);
+                    break;
+            }
         }
-
-        //Parse into ServerMessage format, the serialize to byte[] and send
+        
+        
+        /// <summary>
+        /// Process input passed from the GUI Form and parses data into a ServerMessage
+        /// format, serializes it to bytes, and sends it to the server.
+        /// </summary>
+        /// <param name="commands"></param>
+        /// <param name="msg"></param>
         private void ParseMessage(String[] commands, String msg) {
 
             String mainCommand = commands[0];
@@ -83,22 +120,15 @@ namespace ClientProgram {
 
         }
 
-        //Shutdown and Cleanup
-        private void Shutdown() {
-            if (clientSelf.IsConnected) {
-                UpdateListBox(", ");
-                clientSelf.Close();
-                del_console.Invoke("Connection Terminated!");
-                clientSelf.IsConnected = false;
-            }
-        }
-
-
 
         //=============== BACKGROUND WORKER/THREADS ===============//
         //==================== ASYNC CALLBACKS ====================//
 
-        //Initiate BeginRead from network stream and call OnRead callback when done
+        /// <summary>
+        /// Initiate the BeginRead Asynchronous operation for receiving data on the network stream
+        /// from the server. Sets a ManualResetEvent "doneReading" then instructs the thread to wait 
+        /// until set before continuing.
+        /// </summary>
         private void DoBeginRead() {
             doneReading.Reset();
             if (clientSelf.IsConnected)
@@ -106,6 +136,11 @@ namespace ClientProgram {
             doneReading.WaitOne();
         }
 
+        /// <summary>
+        /// OnRead Asynchronous callback for the DoBeginRead->stream BeginRead method. 
+        /// Calls EndRead and passes the data to the ProcessMessageReceived method to be proccessed.
+        /// </summary>
+        /// <param name="ar">The Client object passed from the Asynchronous BeginRead operation</param>
         public void OnRead(IAsyncResult ar) {
 
             //Get Client object from async state and read data into buffer
@@ -128,47 +163,46 @@ namespace ClientProgram {
             Array.Clear(client.input_buffer, 0, client.input_buffer.Length);
         }
 
-        //Processes a message received from the server
-        private void ProcessMessageReceived(byte[] msgReceived) {
-            ServerMessage smsg = msgReceived.DeserializeFromBytes();
-            String mainCommand = smsg.mainCommand;
-            String secondCommand = "";
-            int noCmds = smsg.noCommands;
-            String payload = smsg.payload;
-            if (noCmds == 2)
-                secondCommand = smsg.secondCommand;
-            //TODO: Simplify the above into own method
 
-            switch (mainCommand) {
-                //TODO: Obviously this is fairly insecure
-                case "-exit":
-                    del_console.Invoke("Server is closing connection...");
-                    //clientSelf.IsConnected = false;
-                    Shutdown();
-                    break;
-                case "-newlist":
-                    //We have received an update for our client list
-                    del_clientlist.Invoke(payload);
-                    break;
-                default:
-                    del_console.Invoke(payload);
-                    break;
+
+        /// <summary>
+        /// Main method for the Background Worker running asynchronously to process communication
+        /// between the client and the server.
+        /// </summary>
+        /// <param name="sender">Sender reference</param>
+        /// <param name="e">Event Arguments passed from caller</param>
+        private void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
+            List<object> args = e.Argument as List<object>;
+
+            try {
+                clientSelf = new Client(new TcpClient((String)args[0], (int)args[1]));
+            } catch (ArgumentNullException) {
+                MessageBox.Show("Invalid Hostname!");
+                return;
+            } catch (ArgumentOutOfRangeException) {
+                MessageBox.Show("Port is out of range!");
+                return;
+            } catch (SocketException exc) {
+                MessageBox.Show("Error connecting to host: \r\n\r\n" + exc.SocketErrorCode + ": " + exc.Message);
+                return;
             }
+            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
 
-        }
-
-        //Main Server loop this one does all the work
-        void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
             //TODO: Think about use of property, cross thread 
             clientSelf.IsConnected = true;
 
-            //Loop until exit flag becomes 1
+            //Loop until client disonnects
             while (clientSelf.IsConnected) {
                 DoBeginRead();
             }
 
         }
 
+        /// <summary>
+        /// Method automatically called when the background worker has finished execution
+        /// </summary>
+        /// <param name="sender">Sender refernce</param>
+        /// <param name="e">Event arguments from caller</param>
         void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
@@ -178,8 +212,28 @@ namespace ClientProgram {
             }
         }
 
+        /// <summary>
+        /// Handles the Shutdown of the connection and cleans up.
+        /// </summary>
+        private void Shutdown() {
+            if (clientSelf.IsConnected) {
+                UpdateListBox(", ");
+                clientSelf.Close();
+                del_console.Invoke("Connection Terminated!");
+                clientSelf.IsConnected = false;
+                btnConnect.Enabled = true;
+            }
+        }
+
         //================ CROSS THREAD DELEGATES =================//
         //=========================================================//
+
+        /// <summary>
+        /// Cross Thread Delegate for updating the List Box of other clients on the Server.
+        /// Because the Control was created on the original GUI Thread, this is neccessary for
+        /// updating the list from the Background Worker Thread that processes communications.
+        /// </summary>
+        /// <param name="obj">The new list of clients</param>
         private void UpdateListBox(object obj) {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
@@ -190,10 +244,15 @@ namespace ClientProgram {
             String x = (String)obj;
             clientlist = x.Split(',').ToList();
 
-            //TODO: Fix empty list here...
             listBoxClients.DataSource = new BindingSource(clientlist, null);
         }
 
+        /// <summary>
+        /// Cross Thread Delegate for updating the main text area of the chat.
+        /// Because the Control was created on the original GUI Thread, this is neccessary for
+        /// updating the list from the Background Worker Thread that processes communications.
+        /// </summary>
+        /// <param name="obj">The data to display in the text area</param>
         private void UpdateTextBox(object obj) {
 
             if (InvokeRequired) { // Check if we need to switch threads to call on txt area.
@@ -207,7 +266,12 @@ namespace ClientProgram {
         //=================== EVENT HANDLERS ======================//
         //=========================================================//
 
-        /****** Buttons ******/
+        /// <summary>
+        /// Checks the information entered into the form is valid, and makes a connection to the
+        /// server starting a background worker to process communications.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnConnect_Click(object sender, EventArgs e) {
 
             //Check that the details the user entered are valid
@@ -215,20 +279,7 @@ namespace ClientProgram {
             int port = GetPortInteger();
             if (addr.Equals("null") || port.Equals(-1)) return;
 
-            try {
-                clientSelf = new Client(new TcpClient(addr, port));
-            } catch (ArgumentNullException) {
-                MessageBox.Show("Invalid Hostname!");
-                return;
-            } catch (ArgumentOutOfRangeException) {
-                MessageBox.Show("Port is out of range!");
-                return;
-            } catch (SocketException exc) {
-                MessageBox.Show("Error connecting to host: \r\n\r\n" + exc.SocketErrorCode + ": " + exc.Message +
-                    "\r\n\r\nPerhaps the server is not running or you have entered an invalid Address");
-                return;
-            }
-            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
+            
             clientSelf.IsConnected = true;
             btnConnect.Enabled = false;
 
@@ -239,9 +290,14 @@ namespace ClientProgram {
             bgWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgWorker_RunWorkerCompleted);
 
             // Launch background thread to loop for server response to input
-            bgWorker.RunWorkerAsync();
+            bgWorker.RunWorkerAsync(new List<object>{addr, port});
         }
 
+        /// <summary>
+        /// Process input from text field and pass to ParseMessage
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnSend_Click(object sender, EventArgs e) {
             String input = txtInput.Text.Trim();
             if (CountWords(input) < 1 || input.Length < 1) {
@@ -251,6 +307,11 @@ namespace ClientProgram {
             txtInput.Text = "";
         }
 
+        /// <summary>
+        /// Sends a Private message to the person selected in the client list
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnWhisper_Click(object sender, EventArgs e) {
             String targetClientId = (String)listBoxClients.SelectedValue;
             String input = txtInput.Text.Trim();
@@ -261,15 +322,19 @@ namespace ClientProgram {
             txtInput.Text = "";
         }
 
-
+        /// <summary>
+        /// Shuts down the connection
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnStop_Click(object sender, EventArgs e) {
             Shutdown();
 
         }
 
-        /****** Keys ******/
-
-        //Method setups event handlers for pressing enter in certain text boxes
+        /// <summary>
+        /// Method setups event handlers for pressing enter in certain text boxes
+        /// </summary>
         private void SetupEventHandlers() {
             //For pressing enter to send message
             this.txtInput.Enter += new EventHandler(txtInput_Enter);
@@ -306,6 +371,11 @@ namespace ClientProgram {
 
         //===================== FORM CHECKING =====================//
         //=========================================================//
+
+        /// <summary>
+        /// Gets the port number from the text field
+        /// </summary>
+        /// <returns></returns>
         public int GetPortInteger() {
             try {
                 int port = Int32.Parse(txtPort.Text);
@@ -316,6 +386,10 @@ namespace ClientProgram {
             }
         }
 
+        /// <summary>
+        /// Gets the IP Address from the text field
+        /// </summary>
+        /// <returns></returns>
         public string GetIpAddress() {
             if ((txtAddress.Text).Length < 1) {
                 MessageBox.Show("You must enter an Ip Address!", "Error");

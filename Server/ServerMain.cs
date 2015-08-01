@@ -37,10 +37,10 @@ namespace Server {
         private TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
 
-
+        //Delegate Declarations
         public delegate void ObjectDelegate(object obj);
-        public static ObjectDelegate del_console;
-        public static ObjectDelegate del_list;
+        public static ObjectDelegate console_delegate;
+        public static ObjectDelegate listbox_delegate;
 
 
         public ServerMain() {
@@ -51,8 +51,8 @@ namespace Server {
             txtAddress.Text = ResolveAddress().ToString();
             txtPort.Text = "13000";
             SetupEventHandlers();
-            del_console = new ObjectDelegate(UpdateTextBox);
-            del_list = new ObjectDelegate(UpdateListBox);
+            console_delegate = new ObjectDelegate(UpdateTextBox);
+            listbox_delegate = new ObjectDelegate(UpdateListBox);
         }
 
         //Override the FormClosing so we can notify all clients we are disconnecting...
@@ -71,7 +71,7 @@ namespace Server {
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             tcpListener.Start(Constants.MAX_BACKLOG);
 
-            del_console.Invoke("I am listening for connections on " +
+            console_delegate.Invoke("I am listening for connections on " +
                                               IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
                                                ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
             pServerRunning = true;
@@ -86,21 +86,22 @@ namespace Server {
         //=========================================================//
 
         private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
-            ServerMessage smsg = msgReceived.DeserializeFromBytes();
+            ServerMessage serverMsg = msgReceived.DeserializeFromBytes();
 
-            String mainCommand = smsg.mainCommand;
-            String messageRecipientId = "";
-            int noCmds = smsg.noCommands;
-            String payload = smsg.payload;
-            if (noCmds == 2)
-                messageRecipientId = smsg.secondCommand;
+            String mainCmd = serverMsg.mainCommand;
+            String messageRecipientId = ""; 
+            String payload = serverMsg.payload;
 
-            switch (mainCommand) {
+            //If the server message is a private message set messageRecipientId from it
+            if (serverMsg.noCommands == 2 && mainCmd.Equals(Commands.WHISPER))
+                messageRecipientId = serverMsg.secondCommand;
+
+            switch (mainCmd) {
                 case Commands.TERMINATE_CONN:
                     clientlist.Remove(sender.ID, true);
                     String leavemsg = sender.ID + " leaves the chat...";
                     UpdateClientsList();
-                    del_console.Invoke(leavemsg);
+                    console_delegate.Invoke(leavemsg);
                     DistributeMessage(new ServerMessage("-say", 1, leavemsg));
                     break;
                 case Commands.SAY:
@@ -108,7 +109,7 @@ namespace Server {
                     DistributeMessage(new ServerMessage("-say", 1, fullmsg));
                     break;
                 case Commands.WHISPER:
-                    if (noCmds == 2)
+                    if(serverMsg.noCommands  == 2)
                         SendToClient(clientlist.FindClientById(messageRecipientId), payload, sender.ID);
                     break;
             }
@@ -127,7 +128,7 @@ namespace Server {
                 try {
                     client.Send(msg);
                 } catch (ObjectDisposedException o) { // Stream is closed
-                    del_console.Invoke("Error occured sending message to: " + client.ID + ". Removing...");
+                    console_delegate.Invoke("Error occured sending message to: " + client.ID + ". Removing...");
                     RemoveClient(client.ID, true);
                 } catch (ArgumentNullException exc) { //buffer invalid
                     MessageBox.Show(exc.ToString());
@@ -139,7 +140,7 @@ namespace Server {
         private static void AddClient(ServerClient client) {
             clientlist.Add(client);
             UpdateClientsList();
-            del_console.Invoke("Added new client");
+            console_delegate.Invoke("Added new client");
         }
 
 
@@ -156,7 +157,7 @@ namespace Server {
 
         //Notifies all connected clients of the new client list
         private static void UpdateClientsList() {
-            del_list.Invoke(null);
+            listbox_delegate.Invoke(null);
             String newlist = String.Join(",", clientlist.ClientIds());
             DistributeMessage(new ServerMessage("-newlist", 1, newlist));
         }
@@ -167,12 +168,12 @@ namespace Server {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
                 pServerRunning = false;
-                del_console.Invoke("Closing!...Connections Terminated... Server shutting down");
+                console_delegate.Invoke("Closing!...Connections Terminated... Server shutting down");
                 UpdateListBox("");
                 btnHost.Enabled = true;
             }
             else
-                del_console.Invoke("Error Occured...");
+                console_delegate.Invoke("Error Occured...");
         }
 
         // ================ ASYNC CALLBACK METHODS ================//
@@ -258,7 +259,7 @@ namespace Server {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
             if (InvokeRequired) {
-                Invoke(del_list, obj);
+                Invoke(listbox_delegate, obj);
                 return;
             }
             if (clientlist.NumberClients < 1) {
@@ -276,7 +277,7 @@ namespace Server {
             //Check if control was created on a different thread.
             //If so, we need to call an Invoke method.
             if (InvokeRequired) {
-                Invoke(del_console, obj);
+                Invoke(console_delegate, obj);
                 return;
             }
             if (obj is byte[]) console_obj.log((byte[])obj);
