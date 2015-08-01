@@ -9,7 +9,10 @@ using System.Diagnostics;
 
 namespace ServerProgram {
 
-
+    /// <summary>
+    /// Represents a ClientList object for the server to use to manage connected clients with
+    /// methods for Adding, Removing, and Shutdown
+    /// </summary>
     public class ClientList {
 
         private ConcurrentDictionary<String, ServerClient> clientlist;
@@ -19,26 +22,48 @@ namespace ServerProgram {
             clientlist = new ConcurrentDictionary<String, ServerClient>();
         }
 
+        /// <summary>
+        /// Gets the underlying ConcurrentDictionary object from ClientList wrapper class
+        /// </summary>
         public ConcurrentDictionary<String, ServerClient> UnderlyingDictionary {
             get { return this.clientlist; }
         }
 
+        /// <summary>
+        /// Returns an Array of all currently connected client IDs
+        /// </summary>
+        /// <returns>Array of client ID's</returns>
         public String[] ClientIds() {
             return clientlist.Keys.ToArray();
         }
 
-        //this Dictionary<String, ServerClient>.ValueCollection valueCollectionValues
+        /// <summary>
+        /// Obtains iterable collection of all ServerClient objects contained within
+        /// clientlist ConcurrentDictionary i.e all currently connected clients
+        /// </summary>
+        /// <returns></returns>
         public ICollection<ServerClient> AllClients() {
             return clientlist.Values;
         }
 
+        /// <summary>
+        /// Adds a new client to the client list and assigns them a unique id as a key
+        /// </summary>
+        /// <param name="newClient">The new ServerClient object to be added</param>
         public void Add(ServerClient newClient) {
             newClient.ID = "C" + idCount;
             clientlist.GetOrAdd(newClient.ID, newClient);
             idCount++;
         }
 
-        //Removes a client from this clientlist and shuts it down gracefully
+        /// <summary>
+        /// Attempts to remove a client from the server, and shut it down gracefully,
+        /// notifying the client they have been removed if they didnt initiate the 
+        /// disconnection.
+        /// </summary>
+        /// <param name="id">ID of the client to be removed</param>
+        /// <param name="notifyClient">Whether or not to notify the client they have been removed</param>
+        /// <returns></returns>
         public bool Remove(String id, bool notifyClient) {
             ServerClient removed;
             if (clientlist.TryRemove(id, out removed)) {
@@ -48,7 +73,10 @@ namespace ServerProgram {
             return false;
         }
 
-        //Removes all Clients from this list gracefully
+        /// <summary>
+        /// Removes ALL currently connected clients from the server by calling the 
+        /// Remove() method on each connected client.
+        /// </summary>
         public void ShutdownClients() {
             //Close all clients then remove them from the list
             foreach (var client in clientlist.Values) {
@@ -56,17 +84,30 @@ namespace ServerProgram {
             }
         }
 
-        //Find the client object associated with a given ID.
+        /// <summary>
+        /// Attempts to retrieve the ServerClient object associated with the given
+        /// ID from the underying dictionary.
+        /// </summary>
+        /// <param name="id">The ID of the client to retrieve</param>
+        /// <returns>The ServerClient that was retreived, or null if it couldnt be found</returns>
         public ServerClient FindClientById(String id) {
             ServerClient found = null;
             clientlist.TryGetValue(id, out found);
             return found;
         }
 
+        /// <summary>
+        /// Gets the number of clients currently connected
+        /// <returns>The number of clients currently connected</returns>
+        /// </summary>
         public int NumberClients {
             get { return clientlist.Count; }
         }
 
+        /// <summary>
+        /// Checks if the clientlist is empty or not
+        /// <returns>True if empty, false if 1 or more clients</returns>
+        /// </summary>
         public bool IsEmpty {
             get { return clientlist.IsEmpty; }
         }
