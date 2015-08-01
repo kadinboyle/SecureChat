@@ -8,7 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
 
-namespace Server {
+namespace ServerProgram {
     public class ServerClient {
 
         public TcpClient tcpClient;
@@ -20,26 +20,8 @@ namespace Server {
         private String id;
         private bool isConnected;
         public byte[] buffer = new byte[10000];
-        private ManualResetEvent doneReading;
-        //private StringBuilder strbuilder;
 
         private ServerMessage EXIT_MSG = new ServerMessage("-exit", 1, "EXIT");
-
-        //public StringBuilder messageReceived {
-        //get { return strbuilder; }
-        //}
-
-        public ManualResetEvent DoneReading() {
-            return doneReading;
-        }
-
-        public void SetEvent(ManualResetEvent mre) {
-            doneReading = mre;
-        }
-
-        ~ServerClient() {
-            //clientStream.Dispose();
-        }
 
         public ServerClient() {
 

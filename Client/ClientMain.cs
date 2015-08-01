@@ -300,7 +300,7 @@ namespace ClientProgram {
         /// <param name="e"></param>
         private void btnSend_Click(object sender, EventArgs e) {
             String input = txtInput.Text.Trim();
-            if (CountWords(input) < 1 || input.Length < 1) {
+            if (input.CountWords() < 1 || input.Length < 1) {
                 return;
             }
             ParseMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
@@ -315,7 +315,7 @@ namespace ClientProgram {
         private void btnWhisper_Click(object sender, EventArgs e) {
             String targetClientId = (String)listBoxClients.SelectedValue;
             String input = txtInput.Text.Trim();
-            if (CountWords(input) < 1 || input.Length < 1) {
+            if (input.CountWords() < 1 || input.Length < 1) {
                 return;
             }
             ParseMessage(new String[] { Commands.WHISPER, targetClientId }, input);
@@ -365,10 +365,7 @@ namespace ClientProgram {
             ActiveForm.AcceptButton = null;
         }
 
-        public static int CountWords(string s) {
-            return s.Split().Length;
-        }
-
+     
         //===================== FORM CHECKING =====================//
         //=========================================================//
 
@@ -398,5 +395,17 @@ namespace ClientProgram {
             return (string)txtAddress.Text;
         }
 
+    }
+
+    public static class Util {
+
+        /// <summary>
+        /// Counts the number of words in a given string
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static int CountWords(this string s) {
+            return s.Split().Length;
+        }
     }
 }

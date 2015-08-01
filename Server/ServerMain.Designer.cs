@@ -1,4 +1,4 @@
-﻿namespace Server
+﻿namespace ServerProgram
 {
     partial class ServerMain
     {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 
 
-namespace Server {
+namespace ServerProgram {
 
 
     public class ClientList {

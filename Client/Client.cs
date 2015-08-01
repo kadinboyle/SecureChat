@@ -83,9 +83,7 @@ namespace ClientProgram {
         }
 
         public bool Send(byte[] messageToSend) {
-            //byte[] messageToSend = messageToSend.SerializeToBytes();
             if (clientStream.CanWrite) {
-                //Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
                 try {
                     clientStream.Write(messageToSend, 0, messageToSend.Length);
                     return true;
@@ -96,40 +94,6 @@ namespace ClientProgram {
                 }
             }
             return false;
-        }
-        
-        public bool Send(String msgToSend) {
-            if (clientStream.CanWrite) {
-                //Byte[] sendBytes = Encoding.UTF8.GetBytes(msgToSend);
-                try {
-                    ServerMessage smsg = new ServerMessage("-say", 1, "WHAT THE FUCK you want biatch");
-                    //MessageBox.Show(smsg.SerializeToString());
-                    //clientStream.Write(sendBytes, 0, sendBytes.Length);
-                    return true;
-                } catch (ObjectDisposedException) {
-                    throw;
-                } catch (ArgumentNullException) {
-                    throw;
-                }
-            }
-            return false;
-        }
-
-        public byte[] Receive() { 
-
-            byte[] readBuffer = new byte[tcpClient.ReceiveBufferSize];
-            //StringBuilder myCompleteMessage = new StringBuilder();
-            int numberOfBytesRead = 0;
-
-            // Incoming message may be larger than the buffer size. 
-            while(clientStream.DataAvailable){
-                numberOfBytesRead = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                //messageReceived.AppendFormat("{0}", Encoding.ASCII.GetString(readBuffer, 0, numberOfBytesRead));
-
-            }
-            //string received = messageReceived.ToString();
-           // messageReceived.Clear();
-            return readBuffer.Take(numberOfBytesRead).ToArray();
         }
 
         public bool IsConnected {

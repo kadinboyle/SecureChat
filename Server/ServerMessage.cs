@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ProtoBuf;
 
-namespace Server{
+namespace ServerProgram{
 
     [ProtoContract]
     public class ServerMessage {

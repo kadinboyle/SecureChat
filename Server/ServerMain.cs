@@ -14,7 +14,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Diagnostics;
 
-namespace Server {
+namespace ServerProgram {
 
 
     public partial class ServerMain : Form {
