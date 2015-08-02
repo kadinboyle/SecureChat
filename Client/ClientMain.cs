@@ -392,7 +392,7 @@ namespace ClientProgram {
                 MessageBox.Show("You must enter an Ip Address!", "Error");
                 return "null";
             }
-            return (string)txtAddress.Text;
+            return (String)txtAddress.Text;
         }
 
     }
@@ -402,10 +402,10 @@ namespace ClientProgram {
         /// <summary>
         /// Counts the number of words in a given string
         /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public static int CountWords(this string s) {
-            return s.Split().Length;
+        /// <param name="s">The string to be counted</param>
+        /// <returns>Number of words in the given string</returns>
+        public static int CountWords(this String str) {
+            return str.Split().Length;
         }
     }
 }

@@ -11,6 +11,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace ClientProgram {
 
+    /// <summary>
+    /// Represents a Client object used to manage connections to the server
+    /// </summary>
     public class Client {
 
         public static TcpClient tcpClient;
@@ -20,7 +23,8 @@ namespace ClientProgram {
         private String clientPort;
         private String localPort;
         private String id;
-        private StringBuilder messageReceived;
+
+        //Buffer for reading from network stream
         public byte[] input_buffer = new byte[10000];
         private volatile bool _isConnected;
 
@@ -28,6 +32,10 @@ namespace ClientProgram {
 
         }
 
+        /// <summary>
+        /// Constructs a new Client object to send/receive messages from the server
+        /// </summary>
+        /// <param name="client">The TcpClient to use in this class for network communication</param>
         public Client(TcpClient client) {
             tcpClient = client;
             clientStream = tcpClient.GetStream();
@@ -35,43 +43,60 @@ namespace ClientProgram {
             clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
             localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
-            messageReceived = new StringBuilder();
         }
 
+        /// <summary>
+        /// Constructs a String summarizing the clients details
+        /// </summary>
+        /// <returns>String of the clients details</returns>
         public String ClientDetails() {
             return String.Format("Client [{0}]: Address: {1}:{2}", id, clientAddress, clientPort);
         }
 
-        public bool CanWrite() {
-            return clientStream.CanWrite;
-        }
-
+        /// <summary>
+        /// Returns the ID associated with this Client
+        /// </summary>
         public String ID {
             get { return this.id; }
             set { this.id = value; }
         }
 
+        /// <summary>
+        /// Gets the local port number of this Client
+        /// </summary>
         public String LocalPort {
             get { return this.localPort; }
             set { this.localPort = value; }
         }
 
+        /// <summary>
+        /// Gets the local IP Address of this Client
+        /// </summary>
         public IPAddress LocalAddress {
             get { return this.localAddress; }
             set { this.localAddress = value; }
         }
 
+        /// <summary>
+        /// Gets the Remote Port this Client is connected to
+        /// </summary>
         public String RemotePort {
             get { return this.clientPort; }
             set { clientPort = value; }
         }
 
+        /// <summary>
+        /// Gets the Remote Address this Client is connected to
+        /// </summary>
         public IPAddress RemoteAddress {
             get { return this.clientAddress; }
             set { this.clientAddress = value; }
         }
 
-        //Notify Server we are closing nad release resources
+        /// <summary>
+        /// Shuts down the underying TCP Client object and closes the network stream 
+        /// whilst notifying the server of disconnection.
+        /// </summary>
         public void Close() {
             this.IsConnected = false;
             try {
@@ -82,6 +107,11 @@ namespace ClientProgram {
             } catch (Exception) {}
         }
 
+        /// <summary>
+        /// Sends a message to host the client is connected to.
+        /// </summary>
+        /// <param name="messageToSend">Message to send in byte[]</param>
+        /// <returns></returns>
         public bool Send(byte[] messageToSend) {
             if (clientStream.CanWrite) {
                 try {
@@ -96,15 +126,12 @@ namespace ClientProgram {
             return false;
         }
 
+        /// <summary>
+        /// Returns true if the client is connected, false if disconnected
+        /// </summary>
         public bool IsConnected {
             get { return _isConnected;  }
             set { _isConnected = value;  }
-        }
-
-        public bool HasMessage() {
-            if (clientStream != null)
-                return clientStream.DataAvailable;
-            return false;
         }
 
     }
