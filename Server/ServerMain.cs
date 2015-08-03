@@ -34,7 +34,7 @@ namespace ServerProgram {
         private IPAddress pServerAddress;
         private IPEndPoint pServerEndpoint;
         private String pServerPort;
-        private TcpListener tcpListener;
+        private static TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
 
         //Delegate Declarations
@@ -77,7 +77,7 @@ namespace ServerProgram {
             pServerRunning = true;
             while (pServerRunning) {
                 //Check for new connection and then begin async reading operations for client
-                BeginAcceptTcpClient(tcpListener);
+                BeginAcceptTcpClient();
             }
         }
 
@@ -218,11 +218,11 @@ namespace ServerProgram {
         /// Accept one Tcp Client Asynchronously
         /// </summary>
         /// <param name="listener">The TCP Listener object the server listens on for incoming connections</param>
-        public static void BeginAcceptTcpClient(TcpListener listener) {
+        public static void BeginAcceptTcpClient() {
             if (!pServerRunning) return;
             // Set the event to nonsignaled state, Accept the connection, then till processed before continuing
             tcpClientConnected.Reset();
-            listener.BeginAcceptTcpClient(new AsyncCallback(OnAcceptTcpClientCallback), listener);
+            tcpListener.BeginAcceptTcpClient(new AsyncCallback(OnAcceptTcpClientCallback), tcpListener);
             tcpClientConnected.WaitOne();
         }
 
