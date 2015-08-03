@@ -14,11 +14,19 @@ namespace ClientProgram {
     /// </summary>
     [ProtoContract]
     public class ServerMessage {
+
         public ServerMessage() {
         }
 
         public ServerMessage(String mainCommand, int noCommands, String payload) {
             this.mainCommand = mainCommand;
+            this.noCommands = noCommands;
+            this.payload = payload;
+        }
+
+        public ServerMessage(String mainCommand, String secondCommand, int noCommands, String payload) {
+            this.mainCommand = mainCommand;
+            this.secondCommand = secondCommand;
             this.noCommands = noCommands;
             this.payload = payload;
         }

@@ -85,7 +85,13 @@ namespace ServerProgram {
         //============= COMMUNICATION AND PROCESSING ==============//
         //=========================================================//
 
-
+        /// <summary>
+        /// Processes a message received from a ServerClient and takes appropiate action depending
+        /// on the contents of the ServerMessage. Takes a byte[] message and deserializes it back
+        /// into ServerMessage format for examination.
+        /// </summary>
+        /// <param name="sender">The client the message was received from</param>
+        /// <param name="msgReceived">The message recevied from the ServerClients buffer</param>
         private static void ProcessMessage(ServerClient sender, byte[] msgReceived) {
             ServerMessage serverMsg = msgReceived.DeserializeFromBytes();
 
@@ -98,72 +104,97 @@ namespace ServerProgram {
                 messageRecipientId = serverMsg.secondCommand;
 
             switch (mainCmd) {
-                case Commands.TERMINATE_CONN:
+                case Commands.TERMINATE_CONN: //Sender has requested we terminate their connection
                     clientlist.Remove(sender.ID, true);
-                    String leavemsg = sender.ID + " leaves the chat...";
-                    UpdateClientsList();
-                    console_delegate.Invoke(leavemsg);
-                    DistributeMessage(new ServerMessage("-say", 1, leavemsg));
+                    UpdateClientsList(); 
                     break;
-                case Commands.SAY:
+
+                case Commands.SAY: //General chat message, forward on to all clients
                     String fullmsg = sender.ID + ": " + payload;
                     DistributeMessage(new ServerMessage("-say", 1, fullmsg));
                     break;
-                case Commands.WHISPER:
+
+                case Commands.WHISPER: //Private message, only send to targeted client
                     if(serverMsg.noCommands  == 2)
                         SendToClient(clientlist.FindClientById(messageRecipientId), payload, sender.ID);
                     break;
             }
         }
 
-        //Sends a message only to the specified client
+        /// <summary>
+        /// Sends a private chat message to the targeted client.
+        /// </summary>
+        /// <param name="client">The client that will be the recipient of the message</param>
+        /// <param name="msg">The chat message to be sent to the client</param>
+        /// <param name="sendersId">The ID/name of the sender</param>
         private static void SendToClient(ServerClient client, string msg, string sendersId) {
             byte[] toSend = new ServerMessage("-say", 1, sendersId + "(Private Message): " + msg).SerializeToBytes();
             client.Send(toSend);
         }
 
-        //Used for sending important server message to all
+        /// <summary>
+        /// Sends a ServerMessage to ALL connected clients.
+        /// </summary>
+        /// <param name="serv_msg">The ServerMessage to be sent</param>
         private static void DistributeMessage(ServerMessage serv_msg) {
             byte[] msg = serv_msg.SerializeToBytes();
             foreach (var client in clientlist.AllClients()) {
                 try {
                     client.Send(msg);
-                } catch (ObjectDisposedException o) { // Stream is closed
+                } catch (ObjectDisposedException o) { // Stream is closed, remove this client
                     console_delegate.Invoke("Error occured sending message to: " + client.ID + ". Removing...");
                     RemoveClient(client.ID, true);
                 } catch (ArgumentNullException exc) { //buffer invalid
-                    MessageBox.Show(exc.ToString());
+                    MessageBox.Show("Invalid message attempting to be sent! Cancelling...", "Error");
+                    return;
                 };
             }
         }
 
-        //Add the client then update our list of clients
+        /// <summary>
+        /// Adds a new ServerClient to the servera and notifies all clients of the new client
+        /// </summary>
+        /// <param name="client">The ServerClient to add to the server</param>
         private static void AddClient(ServerClient client) {
             clientlist.Add(client);
             UpdateClientsList();
-            console_delegate.Invoke("Added new client");
+            console_delegate.Invoke("New client joined :" + client.ID);
         }
 
 
-        // This method handles removing a client from the server
-        // Removes it from the list AND initiates the clients 
-        // shutdown methods whilst updating the listbox of clients
+        /// <summary>
+        /// Removes a client from the Server based on a given ID. If the Client didnt initiate the termination
+        /// then notifyClient must be set to true, so and exit message is sent notifying them to close their
+        /// side of the connection. If the remove is successfull we notify all clients that has been removed.
+        /// </summary>
+        /// <param name="ID">The ID of the client that is to be removed</param>
+        /// <param name="notifyClient">True if we wish to notify the client, False if they initiated the termination</param>
+        /// <returns></returns>
         private static bool RemoveClient(string ID, bool notifyClient) {
             if (clientlist.Remove(ID, notifyClient)) {
+                String leavemsg = ID + " leaves the chat...";
+                console_delegate.Invoke(leavemsg);
+                DistributeMessage(new ServerMessage("-say", 1, leavemsg));
                 UpdateClientsList();
                 return true;
             }
             return false;
         }
 
-        //Notifies all connected clients of the new client list
+        /// <summary>
+        /// Sends a ServerMessage out notifying all connected clients of an update to the list of clients
+        /// on the server.
+        /// </summary>
         private static void UpdateClientsList() {
             listbox_delegate.Invoke(null);
             String newlist = String.Join(",", clientlist.ClientIds());
             DistributeMessage(new ServerMessage("-newlist", 1, newlist));
         }
 
-        //Remove and terminate all client connections and streams, then stop the listener object
+       /// <summary>
+       /// Removes and Terminates all connected ServerClients and shuts their streams, then stops the servers
+       /// TcpListener object.
+       /// </summary>
         private void ShutdownServer() {
             if (pServerRunning) {
                 clientlist.ShutdownClients();
@@ -183,7 +214,10 @@ namespace ServerProgram {
         // Thread signal. 
         public static ManualResetEvent tcpClientConnected = new ManualResetEvent(false);
 
-        // Accept one client connection asynchronously. 
+        /// <summary>
+        /// Accept one Tcp Client Asynchronously
+        /// </summary>
+        /// <param name="listener">The TCP Listener object the server listens on for incoming connections</param>
         public static void BeginAcceptTcpClient(TcpListener listener) {
             if (!pServerRunning) return;
             // Set the event to nonsignaled state, Accept the connection, then till processed before continuing
@@ -192,7 +226,11 @@ namespace ServerProgram {
             tcpClientConnected.WaitOne();
         }
 
-        // Process the client connection. 
+        /// <summary>
+        /// Proccess an accepted connection for a client asynchronously then begins asynchronous read operations
+        /// for that client.
+        /// </summary>
+        /// <param name="ar">Asynchronous state of the listener</param>
         public static void OnAcceptTcpClientCallback(IAsyncResult ar) {
 
             ServerClient client;
@@ -207,10 +245,16 @@ namespace ServerProgram {
                 tcpClientConnected.Set();
             }
             
+            //Add the client then start async reading
             AddClient(client);
             client.clientStream.BeginRead(client.buffer, 0, 10000, new AsyncCallback(OnReadClientCallback), client);
         }
 
+        /// <summary>
+        /// OnRead callback for each client. When the client has a message this method is called and processes it,
+        /// before restarting another asynchronous read.
+        /// </summary>
+        /// <param name="ar">Asynchronous state of the client</param>
         public static void OnReadClientCallback(IAsyncResult ar) {
 
             //Get Client object from async state and read data into buffer
@@ -242,11 +286,21 @@ namespace ServerProgram {
         //=============== BACKGROUND WORKER/THREADS ===============//
         //=========================================================//
 
+        /// <summary>
+        /// Main Worker method, but actually calls RunMain() method with specified params.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         void bgWorker_serverLoop(object sender, DoWorkEventArgs e) {
             List<object> args = e.Argument as List<object>;
             RunMain((IPAddress)args[0], (int)args[1]);
         }
 
+        /// <summary>
+        /// Worker completed method. Called when the server is shutdown.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
@@ -256,9 +310,14 @@ namespace ServerProgram {
 
         //================ CROSS THREAD DELEGATES =================//
         //=========================================================//
+
+        /// <summary>
+        /// Delegate method for accessing the list box of clients between threads.
+        /// </summary>
+        /// <param name="obj">Not used</param>
         private void UpdateListBox(object obj) {
-            //Check if control was created on a different thread.
-            //If so, we need to call an Invoke method.
+
+            //Check if Invoke required
             if (InvokeRequired) {
                 Invoke(listbox_delegate, obj);
                 return;
@@ -273,10 +332,13 @@ namespace ServerProgram {
             }
         }
 
+        /// <summary>
+        /// Delegate method for accessing the text box that displays server message between threads
+        /// </summary>
+        /// <param name="obj">Data to be dispalyed in the text area</param>
         private void UpdateTextBox(object obj) {
 
-            //Check if control was created on a different thread.
-            //If so, we need to call an Invoke method.
+            //Check if Invoke required
             if (InvokeRequired) {
                 Invoke(console_delegate, obj);
                 return;
@@ -288,7 +350,13 @@ namespace ServerProgram {
         //=================== EVENT HANDLERS ======================//
         //=========================================================//
 
-        //HOST SERVER button clicked
+        /// <summary>
+        /// Host Server action triggered when the user clicks "Host"
+        /// Gets the Address and Port details from the text box and attempts to start the server on a 
+        /// background worker thread
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnHost_Click(object sender, EventArgs e) {
             IPAddress ip = GetIpAddress();
             int port = GetPortInteger();
@@ -306,12 +374,20 @@ namespace ServerProgram {
         }
 
 
-        //STOP button clicked
+        /// <summary>
+        /// Stop server triggered when the user clicks "Stop". Calls Shutdown() on Server.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnStop_Click(object sender, EventArgs e) {
             ShutdownServer();
         }
 
-        //REMOVE client button clicked
+        /// <summary>
+        /// Attempts to remove a client that has been selected in the client list box.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnRemoveClient_Click(object sender, EventArgs e) {
             if (clientlist.IsEmpty) return;
             try {
@@ -323,7 +399,10 @@ namespace ServerProgram {
             }
         }
 
-        //Setup event handlers for address and port text fields
+        /// <summary>
+        /// Sets up event handelrs for the address and port text fields so user can press enter
+        /// to host the server when the text fields are active.
+        /// </summary>
         public void SetupEventHandlers() {
             EventHandler host_enter = new EventHandler(serverParams_Enter);
             EventHandler host_leave = new EventHandler(serverParams_Leave);
@@ -344,6 +423,10 @@ namespace ServerProgram {
         //===================== FORM CHECKING =====================//
         //=========================================================//
 
+        /// <summary>
+        /// Retrieves the port number from the text field.
+        /// </summary>
+        /// <returns>The port to host the server on</returns>
         public int GetPortInteger() {
             try {
                 int port = Int32.Parse(txtPort.Text);
@@ -354,6 +437,10 @@ namespace ServerProgram {
             }
         }
 
+        /// <summary>
+        /// Retrieves the ip address from the text field.
+        /// </summary>
+        /// <returns>The address to host the server on</returns>
         public IPAddress GetIpAddress() {
             if ((txtAddress.Text).Length < 1) {
                 MessageBox.Show("You must enter an Ip Address!");
@@ -366,7 +453,10 @@ namespace ServerProgram {
             return address;
         }
 
-        //Resolves an IPv4 Address for this host
+        /// <summary>
+        /// Resolves an IPv4 address for the current host.
+        /// </summary>
+        /// <returns>The IPAddress of this computer</returns>
         private IPAddress ResolveAddress() {
             return Array.Find(Dns.GetHostEntry(string.Empty).AddressList,
                               a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
@@ -385,11 +475,11 @@ namespace ServerProgram {
         public const int MAX_CUSTOM_NAME = 15;
 
         //Messages
-        public const string CHAT_FULL = "Chat server is full! Maximum number of clients reached...";
-        public const string WELCOME_MSG = "Welcome to chat!";
+        public const String CHAT_FULL = "Chat server is full! Maximum number of clients reached...";
+        public const String WELCOME_MSG = "Welcome to chat!";
 
         //Commands
-        public const string HELP = "/help";
+        public const String HELP = "/help";
 
     }
 
