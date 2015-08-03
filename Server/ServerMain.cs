@@ -16,7 +16,9 @@ using System.Diagnostics;
 
 namespace ServerProgram {
 
-
+    /// <summary>
+    /// Represents the main Server class and GUI frontend.
+    /// </summary>
     public partial class ServerMain : Form {
 
         //TODO: Ensure all access to ConcurrentDictionary is done through clientlist class

@@ -208,6 +208,7 @@ namespace ClientProgram {
                 MessageBox.Show(e.Error.Message);
             }
             else {
+                btnConnect.Enabled = true;
                 //MessageBox.Show("Successfully Disonnected from Server!");
             }
         }
@@ -220,8 +221,7 @@ namespace ClientProgram {
                 UpdateListBox(", ");
                 clientSelf.Close();
                 del_console.Invoke("Connection Terminated!");
-                clientSelf.IsConnected = false;
-                btnConnect.Enabled = true;
+                clientSelf.IsConnected = false; 
             }
         }
 
@@ -235,8 +235,8 @@ namespace ClientProgram {
         /// </summary>
         /// <param name="obj">The new list of clients</param>
         private void UpdateListBox(object obj) {
-            //Check if control was created on a different thread.
-            //If so, we need to call an Invoke method.
+
+            //Check if Invoke required
             if (InvokeRequired) {
                 Invoke(del_clientlist, obj);
                 return;
@@ -255,7 +255,8 @@ namespace ClientProgram {
         /// <param name="obj">The data to display in the text area</param>
         private void UpdateTextBox(object obj) {
 
-            if (InvokeRequired) { // Check if we need to switch threads to call on txt area.
+            //Check if Invoke required
+            if (InvokeRequired) {
                 Invoke(del_console, obj);
                 return;
             }
