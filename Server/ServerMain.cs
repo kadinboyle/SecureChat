@@ -105,7 +105,7 @@ namespace ServerProgram {
 
             switch (mainCmd) {
                 case Commands.TERMINATE_CONN: //Sender has requested we terminate their connection
-                    clientlist.Remove(sender.ID, true);
+                    RemoveClient(sender.ID, false);
                     UpdateClientsList(); 
                     break;
 
