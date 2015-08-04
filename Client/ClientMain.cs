@@ -311,6 +311,7 @@ namespace ClientProgram {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync(new List<object>{addr, port});
+            //ParseMessage(new String[] { "-getname" }, "Whats my id?");
         }
 
         /// <summary>

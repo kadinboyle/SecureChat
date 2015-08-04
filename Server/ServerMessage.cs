@@ -87,11 +87,4 @@ namespace ServerProgram {
 
     }
 
-    public static class Commands {
-        public const string TERMINATE_CONN = "-exit";
-        public const string CHANGE_NAME = "-name";
-        public const string SAY = "-say";
-        public const string WHISPER = "-whisper";
-    }
-
 }
