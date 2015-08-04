@@ -38,7 +38,6 @@
             this.btnSend = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
             this.btnWhisper = new System.Windows.Forms.Button();
-            this.txtWhisper = new System.Windows.Forms.TextBox();
             this.listBoxClients = new System.Windows.Forms.ListBox();
             this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
@@ -132,13 +131,6 @@
             this.btnWhisper.UseVisualStyleBackColor = true;
             this.btnWhisper.Click += new System.EventHandler(this.btnWhisper_Click);
             // 
-            // txtWhisper
-            // 
-            this.txtWhisper.Location = new System.Drawing.Point(183, 89);
-            this.txtWhisper.Name = "txtWhisper";
-            this.txtWhisper.Size = new System.Drawing.Size(100, 20);
-            this.txtWhisper.TabIndex = 10;
-            // 
             // listBoxClients
             // 
             this.listBoxClients.FormattingEnabled = true;
@@ -163,7 +155,6 @@
             this.ClientSize = new System.Drawing.Size(646, 262);
             this.Controls.Add(this.listBoxClients);
             this.Controls.Add(this.label4);
-            this.Controls.Add(this.txtWhisper);
             this.Controls.Add(this.btnWhisper);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnSend);
@@ -194,7 +185,6 @@
         private System.Windows.Forms.Button btnSend;
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnWhisper;
-        private System.Windows.Forms.TextBox txtWhisper;
         private System.Windows.Forms.ListBox listBoxClients;
         private System.Windows.Forms.Label label4;
     }

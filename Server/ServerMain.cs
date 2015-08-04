@@ -143,10 +143,10 @@ namespace ServerProgram {
             foreach (var client in clientlist.AllClients()) {
                 try {
                     client.Send(msg);
-                } catch (ObjectDisposedException o) { // Stream is closed, remove this client
+                } catch (ObjectDisposedException) { // Stream is closed, remove this client
                     console_delegate.Invoke("Error occured sending message to: " + client.ID + ". Removing...");
                     RemoveClient(client.ID, true);
-                } catch (ArgumentNullException exc) { //buffer invalid
+                } catch (ArgumentNullException) { //buffer invalid
                     MessageBox.Show("Invalid message attempting to be sent! Cancelling...", "Error");
                     return;
                 };

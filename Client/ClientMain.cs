@@ -20,12 +20,12 @@ namespace ClientProgram {
         private volatile Client clientSelf;
         private IPAddress serverAddress;
         private ConsoleLogger console;
-        private volatile int exit = 0;
         private List<String> clientlist;
         public delegate void ObjectDelegate(object obj);
         public ObjectDelegate del_console;
         public ObjectDelegate del_clientlist;
         private static ManualResetEvent doneReading = new ManualResetEvent(false);
+        private const int MAX_STR_LEN = 300;
 
         public ClientMain() {
             InitializeComponent();
@@ -302,6 +302,10 @@ namespace ClientProgram {
         private void btnSend_Click(object sender, EventArgs e) {
             String input = txtInput.Text.Trim();
             if (input.CountWords() < 1 || input.Length < 1) {
+                return;
+            }
+            if (input.Length > 400) {
+                MessageBox.Show("That message is too long! Maximum amount of characters is " + MAX_STR_LEN);
                 return;
             }
             ParseMessage(new String[] { Commands.SAY }, txtInput.Text.Trim());
