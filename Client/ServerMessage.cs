@@ -89,17 +89,15 @@ namespace ClientProgram {
         /// <returns></returns>
         public static ServerMessage DeserializeFromBytes(this byte[] msg) {
             using (var stream = new MemoryStream(msg)) {
-                return (ServerMessage)Serializer.Deserialize<ServerMessage>(stream);
+                try {
+                    ServerMessage servMsg = (ServerMessage)Serializer.Deserialize<ServerMessage>(stream);
+                    return servMsg;
+                } catch (Exception) {
+                    return new ServerMessage("NULL", "NULL", 0, "NULL");
+                }
             }
         }
 
-    }
-
-    public static class Commands {
-        public const string TERMINATE_CONN = "-exit";
-        public const string CHANGE_NAME = "-name";
-        public const string SAY = "-say";
-        public const string WHISPER = "-whisper";
     }
 
 }

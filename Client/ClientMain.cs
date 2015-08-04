@@ -17,6 +17,13 @@ using System.Diagnostics;
 namespace ClientProgram {
     public partial class ClientMain : Form {
 
+        public static class Commands {
+            public const string TERMINATE_CONN = "-exit";
+            public const string CHANGE_NAME = "-name";
+            public const string SAY = "-say";
+            public const string WHISPER = "-whisper";
+        }
+
         private volatile Client clientSelf;
         private IPAddress serverAddress;
         private ConsoleLogger console;
@@ -55,7 +62,9 @@ namespace ClientProgram {
         private void ProcessMessageReceived(byte[] msgReceived) {
 
             ServerMessage smsg = msgReceived.DeserializeFromBytes();
-
+            if (smsg.noCommands == 0 || smsg.mainCommand.Equals("NULL")) {
+                return;
+            }
             String mainCommand = smsg.mainCommand;
             String secondCommand = "";
             int noCmds = smsg.noCommands;
@@ -72,6 +81,9 @@ namespace ClientProgram {
                     //We have received an update for our client list
                     del_clientlist.Invoke(payload);
                     break;
+                case "-notifname":
+                    MessageBox.Show("Your ID is: " + payload);
+                    break;
                 default:
                     del_console.Invoke(payload);
                     break;
@@ -83,7 +95,7 @@ namespace ClientProgram {
         /// Process input passed from the GUI Form and parses data into a ServerMessage
         /// format, serializes it to bytes, and sends it to the server.
         /// </summary>
-        /// <param name="commands"></param>
+        /// <param name="commands">An Array of commands, either one or two, to be used in the ServerMessage</param>
         /// <param name="msg"></param>
         private void ParseMessage(String[] commands, String msg) {
 
@@ -96,12 +108,19 @@ namespace ClientProgram {
                 case Commands.SAY:
                     servmsg = new ServerMessage("-say", 1, msg);
                     break;
+
                 case Commands.CHANGE_NAME:
 
                     break;
+
                 case Commands.WHISPER:
                     servmsg = new ServerMessage("-whisper", secondCommand, 2, msg);
                     break;
+
+                case "-getname":
+                    servmsg = new ServerMessage("-getname", 1, msg);
+                    break;
+
                 default:
                     return;
             }

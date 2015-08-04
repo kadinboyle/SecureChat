@@ -118,7 +118,11 @@ namespace ServerProgram {
 
                 case Commands.WHISPER: //Private message, only send to targeted client
                     if(serverMsg.noCommands  == 2)
-                        SendToClient(clientlist.FindClientById(messageRecipientId), payload, sender.ID);
+                        SendPmToClient(clientlist.FindClientById(messageRecipientId), payload, sender.ID);
+                    break;
+                case "-getname":
+                    ServerMessage servMsg = new ServerMessage("-notifname", 1, sender.ID);
+                    SendServerMessageToClient(sender, servMsg);
                     break;
             }
         }
@@ -129,9 +133,14 @@ namespace ServerProgram {
         /// <param name="client">The client that will be the recipient of the message</param>
         /// <param name="msg">The chat message to be sent to the client</param>
         /// <param name="sendersId">The ID/name of the sender</param>
-        private static void SendToClient(ServerClient client, string msg, string sendersId) {
+        private static void SendPmToClient(ServerClient client, string msg, string sendersId) {
             byte[] toSend = new ServerMessage("-say", 1, sendersId + "(Private Message): " + msg).SerializeToBytes();
             client.Send(toSend);
+        }
+
+        private static void SendServerMessageToClient(ServerClient recipient, ServerMessage servMsg) {
+            byte[] toSend = servMsg.SerializeToBytes();
+            recipient.Send(toSend);
         }
 
         /// <summary>
