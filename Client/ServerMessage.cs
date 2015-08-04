@@ -60,7 +60,7 @@ namespace ClientProgram {
         /// Override ToString
         /// </summary>
         /// <returns>String representation of the message</returns>
-        public String ToString() {
+        public override String ToString() {
             return "Main Command: " + mainCommand + Environment.NewLine +
                 "Payload: " + payload;
         }
