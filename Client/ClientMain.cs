@@ -169,17 +169,17 @@ namespace ClientProgram {
                 bytesread = client.clientStream.EndRead(ar);
             } catch (ObjectDisposedException) {
                 //Client has disconnected, so end async operations by returning
+                doneReading.Set();
                 return;
             }
-            finally {
-                doneReading.Set();
-            }
-
+            
             //Process the message and empty the Clients buffer (only take the amount read)
             if (bytesread > 0)
                 ProcessMessageReceived(client.input_buffer.Take(bytesread).ToArray());
 
             Array.Clear(client.input_buffer, 0, client.input_buffer.Length);
+            doneReading.Set();
+            
         }
 
 
