@@ -75,7 +75,7 @@
             // 
             // btnHost
             // 
-            this.btnHost.Location = new System.Drawing.Point(213, 82);
+            this.btnHost.Location = new System.Drawing.Point(280, 24);
             this.btnHost.Name = "btnHost";
             this.btnHost.Size = new System.Drawing.Size(61, 23);
             this.btnHost.TabIndex = 4;
@@ -86,18 +86,18 @@
             // txtConsole
             // 
             this.txtConsole.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.txtConsole.Location = new System.Drawing.Point(31, 181);
+            this.txtConsole.Location = new System.Drawing.Point(31, 176);
             this.txtConsole.Multiline = true;
             this.txtConsole.Name = "txtConsole";
             this.txtConsole.ReadOnly = true;
             this.txtConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtConsole.Size = new System.Drawing.Size(418, 88);
+            this.txtConsole.Size = new System.Drawing.Size(469, 88);
             this.txtConsole.TabIndex = 5;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(28, 162);
+            this.label3.Location = new System.Drawing.Point(28, 157);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(48, 13);
             this.label3.TabIndex = 6;
@@ -105,7 +105,7 @@
             // 
             // btnStop
             // 
-            this.btnStop.Location = new System.Drawing.Point(213, 111);
+            this.btnStop.Location = new System.Drawing.Point(280, 55);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(61, 23);
             this.btnStop.TabIndex = 7;
@@ -116,7 +116,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(311, 10);
+            this.label4.Location = new System.Drawing.Point(362, 7);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(41, 13);
             this.label4.TabIndex = 9;
@@ -125,14 +125,15 @@
             // listBoxClients
             // 
             this.listBoxClients.FormattingEnabled = true;
-            this.listBoxClients.Location = new System.Drawing.Point(314, 29);
+            this.listBoxClients.Location = new System.Drawing.Point(365, 26);
             this.listBoxClients.Name = "listBoxClients";
+            this.listBoxClients.ScrollAlwaysVisible = true;
             this.listBoxClients.Size = new System.Drawing.Size(135, 108);
             this.listBoxClients.TabIndex = 10;
             // 
             // btnRemoveClient
             // 
-            this.btnRemoveClient.Location = new System.Drawing.Point(314, 143);
+            this.btnRemoveClient.Location = new System.Drawing.Point(365, 140);
             this.btnRemoveClient.Name = "btnRemoveClient";
             this.btnRemoveClient.Size = new System.Drawing.Size(135, 23);
             this.btnRemoveClient.TabIndex = 11;
@@ -144,7 +145,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(471, 281);
+            this.ClientSize = new System.Drawing.Size(528, 287);
             this.Controls.Add(this.btnRemoveClient);
             this.Controls.Add(this.listBoxClients);
             this.Controls.Add(this.label4);
