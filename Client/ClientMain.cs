@@ -311,7 +311,7 @@ namespace ClientProgram {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync(new List<object>{addr, port});
-            ParseMessage(new String[] { "-getname" }, "Whats my id?");
+            
         }
 
         /// <summary>
@@ -344,6 +344,7 @@ namespace ClientProgram {
             if (input.CountWords() < 1 || input.Length < 1) {
                 return;
             }
+            del_console.Invoke("(PM) You to: (" + targetClientId + "): " + input);
             ParseMessage(new String[] { Commands.WHISPER, targetClientId }, input);
             txtInput.Text = "";
         }
