@@ -77,7 +77,7 @@ namespace ClientProgram {
         /// <returns></returns>
         public static byte[] SerializeToBytes<TData>(this TData msg) {
             using (var stream = new MemoryStream()) {
-                Serializer.Serialize(stream, msg);
+                Serializer.Serialize<TData>(stream, msg);
                 return stream.ToArray();
             }
         }
