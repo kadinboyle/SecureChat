@@ -15,18 +15,18 @@ namespace ServerProgram {
     /// </summary>
     public class ClientList {
 
-        private ConcurrentDictionary<String, ServerClient> clientlist;
+        private ConcurrentDictionary<String, ServerClient> clientdictionary;
         private int idCount = 1000;
        
         public ClientList() {
-            clientlist = new ConcurrentDictionary<String, ServerClient>();
+            clientdictionary = new ConcurrentDictionary<String, ServerClient>();
         }
 
         /// <summary>
         /// Gets the underlying ConcurrentDictionary object from ClientList wrapper class
         /// </summary>
         public ConcurrentDictionary<String, ServerClient> UnderlyingDictionary {
-            get { return this.clientlist; }
+            get { return this.clientdictionary; }
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace ServerProgram {
         /// </summary>
         /// <returns>Array of client ID's</returns>
         public String[] ClientIds() {
-            return clientlist.Keys.ToArray();
+            return clientdictionary.Keys.ToArray();
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace ServerProgram {
         /// </summary>
         /// <returns></returns>
         public ICollection<ServerClient> AllClients() {
-            return clientlist.Values;
+            return clientdictionary.Values;
         }
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace ServerProgram {
         /// <param name="newClient">The new ServerClient object to be added</param>
         public void Add(ServerClient newClient) {
             newClient.ID = "C" + idCount;
-            clientlist.GetOrAdd(newClient.ID, newClient);
+            clientdictionary.GetOrAdd(newClient.ID, newClient);
             idCount++;
         }
 
@@ -66,7 +66,7 @@ namespace ServerProgram {
         /// <returns></returns>
         public bool Remove(String id, bool notifyClient) {
             ServerClient removed;
-            if (clientlist.TryRemove(id, out removed)) {
+            if (clientdictionary.TryRemove(id, out removed)) {
                 removed.Close(notifyClient);
                 return true;
             }
@@ -79,7 +79,7 @@ namespace ServerProgram {
         /// </summary>
         public void ShutdownClients() {
             //Close all clients then remove them from the list
-            foreach (var client in clientlist.Values) {
+            foreach (var client in clientdictionary.Values) {
                 Remove(client.ID, false);
             }
         }
@@ -92,7 +92,7 @@ namespace ServerProgram {
         /// <returns>The ServerClient that was retreived, or null if it couldnt be found</returns>
         public ServerClient FindClientById(String id) {
             ServerClient found = null;
-            clientlist.TryGetValue(id, out found);
+            clientdictionary.TryGetValue(id, out found);
             return found;
         }
 
@@ -101,7 +101,7 @@ namespace ServerProgram {
         /// <returns>The number of clients currently connected</returns>
         /// </summary>
         public int NumberClients {
-            get { return clientlist.Count; }
+            get { return clientdictionary.Count; }
         }
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace ServerProgram {
         /// <returns>True if empty, false if 1 or more clients</returns>
         /// </summary>
         public bool IsEmpty {
-            get { return clientlist.IsEmpty; }
+            get { return clientdictionary.IsEmpty; }
         }
 
 

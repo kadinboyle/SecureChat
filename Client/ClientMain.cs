@@ -311,7 +311,7 @@ namespace ClientProgram {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync(new List<object>{addr, port});
-            //ParseMessage(new String[] { "-getname" }, "Whats my id?");
+            ParseMessage(new String[] { "-getname" }, "Whats my id?");
         }
 
         /// <summary>
@@ -339,6 +339,7 @@ namespace ClientProgram {
         /// <param name="e"></param>
         private void btnWhisper_Click(object sender, EventArgs e) {
             String targetClientId = (String)listBoxClients.SelectedValue;
+            if (targetClientId == null || targetClientId.Length < 1) return;
             String input = txtInput.Text.Trim();
             if (input.CountWords() < 1 || input.Length < 1) {
                 return;

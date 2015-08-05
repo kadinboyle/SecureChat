@@ -90,8 +90,8 @@ namespace ClientProgram {
         public static ServerMessage DeserializeFromBytes(this byte[] msg) {
             using (var stream = new MemoryStream(msg)) {
                 //try {
-                    ServerMessage servMsg = (ServerMessage)Serializer.Deserialize<ServerMessage>(stream);
-                    return servMsg;
+                    return (ServerMessage)Serializer.Deserialize<ServerMessage>(stream);
+                   
                 //} catch (Exception) {
                    // return new ServerMessage("NULL", "NULL", 0, "NULL");
                 //}
