@@ -60,8 +60,12 @@ namespace ClientProgram {
         /// </summary>
         /// <param name="msgReceived"></param>
         private void ProcessMessageReceived(byte[] msgReceived) {
-
-            ServerMessage smsg = msgReceived.DeserializeFromBytes();
+            ServerMessage smsg = null;
+            try {
+                smsg = msgReceived.DeserializeFromBytes();
+            } catch (Exception exc) {
+                return;
+            }
             if (smsg.noCommands == 0 || smsg.mainCommand.Equals("NULL")) {
                 return;
             }
@@ -186,11 +190,9 @@ namespace ClientProgram {
         private void DoBeginRead() {
             doneReading.Reset();
             if (clientSelf.IsConnected)
-                try {
-                    clientSelf.clientStream.BeginRead(clientSelf.input_buffer, 0, 10000, new AsyncCallback(OnRead), clientSelf);
-                } catch (Exception exc) {
-                    MessageBox.Show(exc.Message);
-                }
+
+            clientSelf.clientStream.BeginRead(clientSelf.input_buffer, 0, 10000, new AsyncCallback(OnRead), clientSelf);
+ 
             doneReading.WaitOne();
         }
 
@@ -206,8 +208,8 @@ namespace ClientProgram {
             int bytesread = 0;
             try {
                 bytesread = client.clientStream.EndRead(ar);
-            } catch (Exception exc) {
-                MessageBox.Show(exc.ToString());
+            } catch (ObjectDisposedException) {
+                //MessageBox.Show(exc.ToString());
                 //Client has disconnected, so end async operations by returning
                 doneReading.Set();
                 return;

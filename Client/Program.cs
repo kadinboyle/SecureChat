@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.ComponentModel;
+using System.Reflection;
 
 namespace ClientProgram {
     static class Program {
@@ -14,7 +15,18 @@ namespace ClientProgram {
         static void Main() {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
+
             Application.Run(new ClientMain());
+        }
+
+        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args) {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ClientProgram.lib.protobuf-net.dll")) {
+                byte[] assemblyData = new byte[stream.Length];
+                stream.Read(assemblyData, 0, assemblyData.Length);
+                return Assembly.Load(assemblyData);
+            }
         }
 
     }
