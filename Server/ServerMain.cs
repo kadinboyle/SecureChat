@@ -286,7 +286,9 @@ namespace ServerProgram {
             int bytesread = 0;
             try {
                 bytesread = client.clientStream.EndRead(ar);
-            } catch (ObjectDisposedException) {
+            } catch (Exception exc) {
+                Debug.WriteLine(exc.Message);
+                RemoveClient(client.ID, false);
                 //Client has disconnected, so end async operations by returning
                 return;
             }

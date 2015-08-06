@@ -137,6 +137,8 @@ namespace ServerProgram {
                 } catch (ArgumentNullException) {
                     return false;
                     throw;
+                } catch (Exception exc) {
+                    Debug.WriteLine(exc.Message);
                 }
             }
             return false;
