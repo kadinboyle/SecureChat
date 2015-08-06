@@ -144,6 +144,41 @@ namespace ClientProgram {
         //==================== ASYNC CALLBACKS ====================//
 
         /// <summary>
+        /// Main method for the Background Worker running asynchronously to process communication
+        /// between the client and the server.
+        /// </summary>
+        /// <param name="sender">Sender reference</param>
+        /// <param name="e">Event Arguments passed from caller</param>
+        private void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
+
+            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
+
+            //TODO: Think about use of property, cross thread 
+            clientSelf.IsConnected = true;
+
+            //Loop until client disonnects
+            while (clientSelf.IsConnected) {
+                DoBeginRead();
+            }
+
+        }
+
+        /// <summary>
+        /// Method automatically called when the background worker has finished execution
+        /// </summary>
+        /// <param name="sender">Sender refernce</param>
+        /// <param name="e">Event arguments from caller</param>
+        void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
+            if (e.Error != null) {
+                MessageBox.Show(e.Error.Message);
+            }
+            else {
+                btnConnect.Enabled = true;
+                //MessageBox.Show("Successfully Disonnected from Server!");
+            }
+        }
+
+        /// <summary>
         /// Initiate the BeginRead Asynchronous operation for receiving data on the network stream
         /// from the server. Sets a ManualResetEvent "doneReading" then instructs the thread to wait 
         /// until set before continuing.
@@ -182,55 +217,6 @@ namespace ClientProgram {
             
         }
 
-
-
-        /// <summary>
-        /// Main method for the Background Worker running asynchronously to process communication
-        /// between the client and the server.
-        /// </summary>
-        /// <param name="sender">Sender reference</param>
-        /// <param name="e">Event Arguments passed from caller</param>
-        private void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
-            List<object> args = e.Argument as List<object>;
-
-            try {
-                clientSelf = new Client(new TcpClient((String)args[0], (int)args[1]));
-            } catch (ArgumentNullException) {
-                MessageBox.Show("Invalid Hostname!");
-                return;
-            } catch (ArgumentOutOfRangeException) {
-                MessageBox.Show("Port is out of range!");
-                return;
-            } catch (SocketException exc) {
-                MessageBox.Show("Error connecting to host: \r\n\r\n" + exc.SocketErrorCode + ": " + exc.Message);
-                return;
-            }
-            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
-
-            //TODO: Think about use of property, cross thread 
-            clientSelf.IsConnected = true;
-
-            //Loop until client disonnects
-            while (clientSelf.IsConnected) {
-                DoBeginRead();
-            }
-
-        }
-
-        /// <summary>
-        /// Method automatically called when the background worker has finished execution
-        /// </summary>
-        /// <param name="sender">Sender refernce</param>
-        /// <param name="e">Event arguments from caller</param>
-        void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
-            if (e.Error != null) {
-                MessageBox.Show(e.Error.Message);
-            }
-            else {
-                btnConnect.Enabled = true;
-                //MessageBox.Show("Successfully Disonnected from Server!");
-            }
-        }
 
         /// <summary>
         /// Handles the Shutdown of the connection and cleans up.
@@ -299,8 +285,20 @@ namespace ClientProgram {
             int port = GetPortInteger();
             if (addr.Equals("null") || port.Equals(-1)) return;
 
-            
-            clientSelf.IsConnected = true;
+
+            try {
+                clientSelf = new Client(new TcpClient(addr, port));
+            } catch (ArgumentNullException) {
+                MessageBox.Show("Invalid Hostname!", "Error");
+                return;
+            } catch (ArgumentOutOfRangeException) {
+                MessageBox.Show("Port is out of range!", "Error");
+                return;
+            } catch (SocketException exc) {
+                MessageBox.Show("Error connecting to host: \r\n\r\n" + exc.SocketErrorCode + ": " + exc.Message, "Error");
+                return;
+            }
+
             btnConnect.Enabled = false;
 
             // Set up background worker object & hook up handlers
@@ -310,7 +308,7 @@ namespace ClientProgram {
             bgWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgWorker_RunWorkerCompleted);
 
             // Launch background thread to loop for server response to input
-            bgWorker.RunWorkerAsync(new List<object>{addr, port});
+            bgWorker.RunWorkerAsync();
             
         }
 

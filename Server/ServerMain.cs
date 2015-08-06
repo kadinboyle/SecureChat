@@ -35,7 +35,7 @@ namespace ServerProgram {
         private static volatile Boolean pServerRunning;
         private IPAddress pServerAddress;
         private IPEndPoint pServerEndpoint;
-        private String pServerPort;
+        private int pServerPort;
         private static TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
 
@@ -44,6 +44,9 @@ namespace ServerProgram {
         public static ObjectDelegate console_delegate;
         public static ObjectDelegate listbox_delegate;
 
+        private static NATUPNPLib.UPnPNATClass upnpnat = new NATUPNPLib.UPnPNATClass();
+        private static NATUPNPLib.IStaticPortMappingCollection mappings = upnpnat.StaticPortMappingCollection;
+
 
         public ServerMain() {
             InitializeComponent();
@@ -51,7 +54,7 @@ namespace ServerProgram {
             pServerRunning = false;
             clientlist = new ClientList();
             txtAddress.Text = ResolveAddress().ToString();
-            txtPort.Text = "13000";
+            txtPort.Text = "64500";
             SetupEventHandlers();
             console_delegate = new ObjectDelegate(UpdateTextBox);
             listbox_delegate = new ObjectDelegate(UpdateListBox);
@@ -69,7 +72,14 @@ namespace ServerProgram {
         public void RunMain(IPAddress address, int port) {
 
             //Start tcp Listener object that will accept connections with a backlog specified.
-            tcpListener = new TcpListener(address, port);
+            try {
+                tcpListener = new TcpListener(IPAddress.Any, port);
+                tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
+                tcpListener.Start(Constants.MAX_BACKLOG);
+            } catch (Exception exc) {
+                MessageBox.Show(exc.Message);
+                return;
+            }
             tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
             tcpListener.Start(Constants.MAX_BACKLOG);
 
@@ -82,6 +92,8 @@ namespace ServerProgram {
                 BeginAcceptTcpClient();
             }
         }
+
+
 
 
         //============= COMMUNICATION AND PROCESSING ==============//
@@ -207,6 +219,7 @@ namespace ServerProgram {
        /// TcpListener object.
        /// </summary>
         private void ShutdownServer() {
+            mappings.Remove(pServerPort, "TCP");
             if (pServerRunning) {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
@@ -316,6 +329,9 @@ namespace ServerProgram {
             if (e.Error != null) {
                 MessageBox.Show(e.Error.Message);
             }
+            btnHost.Enabled = true;
+            // Remove TCP forwarding for Port 80
+   
         }
 
 
@@ -372,7 +388,14 @@ namespace ServerProgram {
             IPAddress ip = GetIpAddress();
             int port = GetPortInteger();
             if (port == -1 || ip == null) return;
-            btnHost.Enabled = false;
+
+
+            pServerPort = port;
+            // Here's an example of opening up TCP Port 80 to forward to a specific Computer on the Private Network
+            //mappings.Add(80, "TCP", 80, "192.168.1.100", true, "Local Web Server");
+            mappings.Add(port, "TCP", port, ip.ToString(), true, "Async Chat Server");
+
+
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -382,6 +405,7 @@ namespace ServerProgram {
 
             // Launch background thread to loop for server response to input
             bgWorker.RunWorkerAsync(new List<object> { ip, port });
+            btnHost.Enabled = false;
         }
 
 

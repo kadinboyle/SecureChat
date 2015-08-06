@@ -73,7 +73,7 @@
             this.txtPort.Name = "txtPort";
             this.txtPort.Size = new System.Drawing.Size(225, 20);
             this.txtPort.TabIndex = 3;
-            this.txtPort.Text = "13000";
+            this.txtPort.Text = "64500";
             // 
             // txtInput
             // 
