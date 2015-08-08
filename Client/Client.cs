@@ -39,8 +39,8 @@ namespace ClientProgram {
         public Client(TcpClient client) {
             tcpClient = client;
             clientStream = tcpClient.GetStream();
-            clientAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
-            clientPort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
+            RemoteAddress = IPAddress.Parse(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString());
+            RemotePort = (String)((IPEndPoint)tcpClient.Client.RemoteEndPoint).Port.ToString();
             localAddress = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Address;
             localPort = (((IPEndPoint)tcpClient.Client.LocalEndPoint)).Port.ToString();
         }

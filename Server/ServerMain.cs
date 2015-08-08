@@ -219,7 +219,11 @@ namespace ServerProgram {
        /// TcpListener object.
        /// </summary>
         private void ShutdownServer() {
-            mappings.Remove(pServerPort, "TCP");
+            try {
+                mappings.Remove(pServerPort, "TCP");
+            } catch (Exception exc) {
+
+            }
             if (pServerRunning) {
                 clientlist.ShutdownClients();
                 tcpListener.Stop();
@@ -393,9 +397,12 @@ namespace ServerProgram {
 
 
             pServerPort = port;
-            // Here's an example of opening up TCP Port 80 to forward to a specific Computer on the Private Network
-            //mappings.Add(80, "TCP", 80, "192.168.1.100", true, "Local Web Server");
-            mappings.Add(port, "TCP", port, ip.ToString(), true, "Async Chat Server");
+
+            try {
+                mappings.Add(port, "TCP", port, ip.ToString(), true, "Async Chat Server");
+            } catch (Exception exc) {
+                MessageBox.Show("Error forwarding port via UPNP. Your server may not visible from the Internet!");
+            }
 
 
 

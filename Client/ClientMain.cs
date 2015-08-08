@@ -155,7 +155,7 @@ namespace ClientProgram {
         /// <param name="e">Event Arguments passed from caller</param>
         private void bgWorker_mainLoop(object sender, DoWorkEventArgs e) {
 
-            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: ");
+            del_console.Invoke("Connected to " + clientSelf.RemoteAddress + " on port: " + clientSelf.RemotePort);
 
             //TODO: Think about use of property, cross thread 
             clientSelf.IsConnected = true;
