@@ -60,6 +60,7 @@ namespace ServerProgram {
             console_delegate = new ObjectDelegate(UpdateTextBox);
             listbox_delegate = new ObjectDelegate(UpdateListBox);
             pServerUseUPNP = checkBoxUpnp.Checked;
+            textPublicAddress.Text = "... Resolving ...";
             GetPublicIP();
         }
 
