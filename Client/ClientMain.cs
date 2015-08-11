@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ClientMain.cs (Client)
+ # Author: Kadin Boyle
+ # Date:   Last authored 11/08/2015
+ #=================================================*/
+
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;

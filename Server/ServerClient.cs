@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ServerClient.cs (Server)
+ # Author: Kadin Boyle
+ # Date:   Last authored 01/08/2015
+ #=================================================*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

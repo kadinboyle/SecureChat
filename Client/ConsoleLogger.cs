@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ConsoleLogger.cs (Client)
+ # Author: Kadin Boyle
+ # Date:   Last authored 20/07/2015
+ #=================================================*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

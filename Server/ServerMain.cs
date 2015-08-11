@@ -1,5 +1,8 @@
-﻿
-//Author: Kadin Boyle
+﻿/**=================================================|
+ # FileName: ServerMain.cs (Server)
+ # Author: Kadin Boyle
+ # Date:   Last authored 11/08/2015
+ #=================================================*/
 
 using System;
 using System.Collections.Generic;
@@ -24,9 +27,6 @@ namespace ServerProgram {
     /// </summary>
     public partial class ServerMain : Form {
 
-        //TODO: Ensure all access to ConcurrentDictionary is done through clientlist class
-        //TODO: ADD IN USE of """ USING """ statments
-        //TODO: Move commands to shared class ServerMessage
         public static class Commands {
             public const string TERMINATE_CONN = "-exit";
             public const string CHANGE_NAME = "-name";
@@ -346,7 +346,6 @@ namespace ServerProgram {
             }
             btnHost.Enabled = true;
             // Remove TCP forwarding for Port 80
-   
         }
 
 

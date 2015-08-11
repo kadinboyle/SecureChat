@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ServerMessage.cs (Client)
+ # Author: Kadin Boyle
+ # Date:   Last authored 05/08/2015
+ #=================================================*/
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -89,12 +95,7 @@ namespace ClientProgram {
         /// <returns></returns>
         public static ServerMessage DeserializeFromBytes(this byte[] msg) {
             using (var stream = new MemoryStream(msg)) {
-                //try {
                     return (ServerMessage)Serializer.Deserialize<ServerMessage>(stream);
-                   
-                //} catch (Exception) {
-                   // return new ServerMessage("NULL", "NULL", 0, "NULL");
-                //}
             }
         }
 

@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ClientList.cs (Server)
+ # Author: Kadin Boyle
+ # Date:   Last authored 02/08/2015
+ #=================================================*/
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;

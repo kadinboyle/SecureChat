@@ -6,6 +6,11 @@ Requirements: Built with .NET Framework 4.5
 Version: 1.0.0
 Status: Core functionality Implemented. Next rev -> Security & Cryptography
 //-------------------------------------------------------------------------
+
+Embedded DLL's:
+	- Interop.NATUPNPlib.dll (UPNP Port Forwarding for Server)
+	- protobuf-net.dll (Message Serialization/Deserialization)
+
 NOTE: There may still be bugs and errors that cause the programs to crash!
 
 NOTE: The server will atempt to forward your chosen port using UPNP. A

@@ -2,11 +2,7 @@
  # FileName: ConsoleLogger.cs (Server)
  # Author: Kadin Boyle
  # Date:   Last authored 15/07/2015
- # Description: Simple class to abstract logging text
- #              to a denoted 'console' text box.
- #
  #=================================================*/
-
 
 using System;
 using System.Collections.Generic;

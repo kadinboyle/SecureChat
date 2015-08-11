@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**=================================================|
+ # FileName: ServerMessage.cs (Server)
+ # Author: Kadin Boyle
+ # Date:   Last authored 05/08/2015
+ #=================================================*/
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
