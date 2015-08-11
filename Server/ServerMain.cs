@@ -1,4 +1,7 @@
-﻿using System;
+﻿
+//Author: Kadin Boyle
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
