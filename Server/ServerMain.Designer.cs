@@ -39,6 +39,9 @@
             this.label4 = new System.Windows.Forms.Label();
             this.listBoxClients = new System.Windows.Forms.ListBox();
             this.btnRemoveClient = new System.Windows.Forms.Button();
+            this.checkBoxUpnp = new System.Windows.Forms.CheckBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.textPublicAddress = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label1
@@ -141,11 +144,44 @@
             this.btnRemoveClient.UseVisualStyleBackColor = true;
             this.btnRemoveClient.Click += new System.EventHandler(this.btnRemoveClient_Click);
             // 
+            // checkBoxUpnp
+            // 
+            this.checkBoxUpnp.AutoSize = true;
+            this.checkBoxUpnp.Checked = true;
+            this.checkBoxUpnp.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxUpnp.Location = new System.Drawing.Point(285, 94);
+            this.checkBoxUpnp.Name = "checkBoxUpnp";
+            this.checkBoxUpnp.Size = new System.Drawing.Size(56, 17);
+            this.checkBoxUpnp.TabIndex = 13;
+            this.checkBoxUpnp.Text = "UPNP";
+            this.checkBoxUpnp.UseVisualStyleBackColor = true;
+            this.checkBoxUpnp.CheckedChanged += new System.EventHandler(this.checkBoxUpnp_CheckedChanged);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(28, 94);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(52, 13);
+            this.label5.TabIndex = 14;
+            this.label5.Text = "Public IP:";
+            // 
+            // textPublicAddress
+            // 
+            this.textPublicAddress.Location = new System.Drawing.Point(106, 91);
+            this.textPublicAddress.Name = "textPublicAddress";
+            this.textPublicAddress.ReadOnly = true;
+            this.textPublicAddress.Size = new System.Drawing.Size(168, 20);
+            this.textPublicAddress.TabIndex = 15;
+            // 
             // ServerMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(528, 287);
+            this.Controls.Add(this.textPublicAddress);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.checkBoxUpnp);
             this.Controls.Add(this.btnRemoveClient);
             this.Controls.Add(this.listBoxClients);
             this.Controls.Add(this.label4);
@@ -179,6 +215,9 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ListBox listBoxClients;
         private System.Windows.Forms.Button btnRemoveClient;
+        private System.Windows.Forms.CheckBox checkBoxUpnp;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox textPublicAddress;
     }
 }
 

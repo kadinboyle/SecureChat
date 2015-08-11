@@ -38,6 +38,7 @@ namespace ServerProgram {
         private int pServerPort;
         private static TcpListener tcpListener;
         private static volatile ClientList clientlist = new ClientList();
+        private volatile bool pServerUseUPNP = false;
 
         //Delegate Declarations
         public delegate void ObjectDelegate(object obj);
@@ -58,6 +59,8 @@ namespace ServerProgram {
             SetupEventHandlers();
             console_delegate = new ObjectDelegate(UpdateTextBox);
             listbox_delegate = new ObjectDelegate(UpdateListBox);
+            pServerUseUPNP = checkBoxUpnp.Checked;
+            GetPublicIP();
         }
 
         //Override the FormClosing so we can notify all clients we are disconnecting...
@@ -73,7 +76,7 @@ namespace ServerProgram {
 
             //Start tcp Listener object that will accept connections with a backlog specified.
             try {
-                tcpListener = new TcpListener(IPAddress.Any, port);
+                tcpListener = new TcpListener(address, port);
                 tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
                 tcpListener.Start(Constants.MAX_BACKLOG);
             } catch (Exception exc) {
@@ -84,7 +87,7 @@ namespace ServerProgram {
             tcpListener.Start(Constants.MAX_BACKLOG);
 
             console_delegate.Invoke("I am listening for connections on " +
-                                              IPAddress.Parse(((IPEndPoint)tcpListener.LocalEndpoint).Address.ToString()) +
+                                              ResolveAddress() +
                                                ":" + ((IPEndPoint)tcpListener.LocalEndpoint).Port.ToString());
             pServerRunning = true;
             while (pServerRunning) {
@@ -219,10 +222,12 @@ namespace ServerProgram {
        /// TcpListener object.
        /// </summary>
         private void ShutdownServer() {
-            try {
-                mappings.Remove(pServerPort, "TCP");
-            } catch (Exception exc) {
+            if (pServerUseUPNP) {
+                try {
+                    mappings.Remove(pServerPort, "TCP");
+                } catch (Exception exc) {
 
+                }
             }
             if (pServerRunning) {
                 clientlist.ShutdownClients();
@@ -397,14 +402,17 @@ namespace ServerProgram {
 
 
             pServerPort = port;
-
-            try {
-                mappings.Add(port, "TCP", port, ip.ToString(), true, "Async Chat Server");
-            } catch (Exception exc) {
-                MessageBox.Show("Error forwarding port via UPNP. Your server may not visible from the Internet!");
+            if (pServerUseUPNP) {
+                try {
+                    mappings.Add(port, "TCP", port, ip.ToString(), true, "Async Chat Server");
+                } catch (Exception) {
+                    MessageBox.Show("Error forwarding port via UPNP. Your server may not visible from the Internet!\r\n\r\n" +
+                        "Please ensure that you have enabled UPNP in your routers settings", "Error");
+                }
             }
-
-
+            else {
+                console_delegate.Invoke("Starting server without using UPNP. Your Server may not be visible from the internet!");
+            }
 
             // Set up background worker object & hook up handlers
             BackgroundWorker bgWorker;
@@ -504,6 +512,44 @@ namespace ServerProgram {
         private IPAddress ResolveAddress() {
             return Array.Find(Dns.GetHostEntry(string.Empty).AddressList,
                               a => a.AddressFamily == AddressFamily.InterNetwork) ?? IPAddress.Parse("127.0.0.1");
+        }
+
+        private void GetPublicIP() {
+            {
+                BackgroundWorker bw = new BackgroundWorker();
+
+                bw.DoWork += new DoWorkEventHandler(
+                delegate(object o, DoWorkEventArgs args) {
+                    BackgroundWorker b = o as BackgroundWorker;
+
+                    string a4 = "";
+                    try {
+                        string url = "http://checkip.dyndns.org";
+                        System.Net.WebRequest req = System.Net.WebRequest.Create(url);
+                        System.Net.WebResponse resp = req.GetResponse();
+                        System.IO.StreamReader sr = new System.IO.StreamReader(resp.GetResponseStream());
+                        string response = sr.ReadToEnd().Trim();
+                        string[] a = response.Split(':');
+                        string a2 = a[1].Substring(1);
+                        string[] a3 = a2.Split('<');
+                        a4 = a3[0];
+                    } catch (Exception) { }
+                    args.Result = a4;
+
+                });
+
+                // what to do when worker completes its task (notify the user)
+                bw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(
+                delegate(object o, RunWorkerCompletedEventArgs args) {
+                    textPublicAddress.Text = (String)args.Result;
+                });
+
+                bw.RunWorkerAsync();
+            } 
+        }
+
+        private void checkBoxUpnp_CheckedChanged(object sender, EventArgs e) {
+            pServerUseUPNP ^= true;
         }
 
 
